@@ -7,7 +7,7 @@ import incidentRoutes from "./routes/incident.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import teamRoutes from "./routes/team.routes.js";
-
+import recommendationRoutes from "./routes/recommendation.routes.js";
 const app = express();
 
 app.use(helmet());
