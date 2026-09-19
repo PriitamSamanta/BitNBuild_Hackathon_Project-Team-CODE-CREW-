@@ -1,8 +1,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
+@import "tailwindcss";
 
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@theme {
+  --color-navy-deep: #071a2f;
+  --color-navy-secondary: #0b1f3a;
+  --color-navy-card: #102a43;
+  --color-navy-border: #1e3a5f;
+
+  --color-primary: #ef233c;
+  --color-secondary: #94a3b8;
+}
 
 :root {
   --navy-deep: #071a2f;
@@ -16,10 +23,10 @@
 }
 
 html,
-body,
-#root {
+body {
   height: 100%;
   margin: 0;
+  padding: 0;
 }
 
 body {
@@ -31,37 +38,47 @@ body {
 }
 
 /* Custom scrollbar */
+
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
 }
+
 ::-webkit-scrollbar-track {
   background: var(--navy-secondary);
 }
+
 ::-webkit-scrollbar-thumb {
   background: var(--navy-border);
   border-radius: 4px;
 }
+
 ::-webkit-scrollbar-thumb:hover {
   background: #2a4a7f;
 }
 
-/* Leaflet dark map overrides */
+/* Leaflet */
+
 .leaflet-container {
   background: #0b1f3a !important;
   font-family: 'Inter', sans-serif !important;
 }
+
 .leaflet-tile-pane {
-  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9) saturate(0.4);
+  filter: invert(1) hue-rotate(180deg) brightness(0.85) contrast(0.9)
+    saturate(0.4);
 }
+
 .leaflet-control-zoom a {
   background: #102a43 !important;
   color: #fff !important;
   border-color: #1e3a5f !important;
 }
+
 .leaflet-control-zoom a:hover {
   background: #1e3a5f !important;
 }
+
 .leaflet-popup-content-wrapper {
   background: #102a43 !important;
   color: #fff !important;
@@ -69,38 +86,46 @@ body {
   border-radius: 12px !important;
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4) !important;
 }
+
 .leaflet-popup-tip {
   background: #102a43 !important;
   border: 1px solid #1e3a5f !important;
 }
+
 .leaflet-popup-content {
   margin: 12px 16px !important;
   font-size: 13px !important;
 }
+
 .leaflet-popup-close-button {
   color: #94a3b8 !important;
 }
 
-/* Custom marker pulse */
+/* Marker pulse */
+
 .marker-pulse {
   animation: markerPulse 1.8s ease-out infinite;
 }
+
 @keyframes markerPulse {
   0% {
     transform: scale(0.8);
     opacity: 0.8;
   }
+
   50% {
     transform: scale(1.4);
     opacity: 0.3;
   }
+
   100% {
     transform: scale(0.8);
     opacity: 0.8;
   }
 }
 
-/* Scanning line animation for AI processing */
+/* AI scanning animation */
+
 .scan-line {
   background: linear-gradient(
     90deg,
@@ -108,27 +133,34 @@ body {
     rgba(124, 58, 237, 0.6),
     transparent
   );
+
   animation: scan 1.5s linear infinite;
 }
+
 @keyframes scan {
   0% {
     transform: translateX(-100%);
   }
+
   100% {
     transform: translateX(100%);
   }
 }
 
 /* Typing dots */
+
 .typing-dot {
   animation: typingBounce 1.4s infinite ease-in-out;
 }
+
 .typing-dot:nth-child(2) {
   animation-delay: 0.2s;
 }
+
 .typing-dot:nth-child(3) {
   animation-delay: 0.4s;
 }
+
 @keyframes typingBounce {
   0%,
   60%,
@@ -136,6 +168,7 @@ body {
     transform: translateY(0);
     opacity: 0.4;
   }
+
   30% {
     transform: translateY(-6px);
     opacity: 1;

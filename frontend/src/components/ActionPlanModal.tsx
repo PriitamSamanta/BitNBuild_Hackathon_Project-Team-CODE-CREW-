@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Zap, Check, X, Truck, Send } from 'lucide-react';
 import { Modal } from './Modal';
-import { useApp } from '@/src/context/AppContext';
-import { generateActionPlan } from '@/src/services/aiService';
-import { INCIDENT_TYPE_META, type Incident } from '@/src/types';
+import { useApp } from '@/context/AppContext';
+import { generateActionPlan } from '@/services/aiService';
+import { INCIDENT_TYPE_META, type Incident } from '@/types';
 
 interface ActionPlanModalProps {
   open: boolean;

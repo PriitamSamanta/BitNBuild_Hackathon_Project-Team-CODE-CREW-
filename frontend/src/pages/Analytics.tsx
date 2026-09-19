@@ -2,8 +2,8 @@
 
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, AreaChart, Area, Legend } from 'recharts';
 import { TrendingUp } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import { INCIDENT_TYPE_META, SEVERITY_META, RESOURCE_TYPE_META, type IncidentType, type Severity, type ResourceType } from '@/src/types';
+import { useApp } from '@/context/AppContext';
+import { INCIDENT_TYPE_META, SEVERITY_META, RESOURCE_TYPE_META, type IncidentType, type Severity, type ResourceType } from '@/types';
 
 const tooltipStyle = { backgroundColor: '#102A43', border: '1px solid #1E3A5F', borderRadius: '8px', fontSize: '12px', color: '#fff' };
 const EMPTY = <div className="flex h-[240px] items-center justify-center text-sm text-muted">No data available yet</div>;

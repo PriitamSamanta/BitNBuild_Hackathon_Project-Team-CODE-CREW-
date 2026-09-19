@@ -1,4 +1,4 @@
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import { Bell, CheckCheck, Trash2, X } from 'lucide-react';
 import type { PageId } from './Sidebar';
 

@@ -1,5 +1,5 @@
-import type { Severity } from '@/src/types';
-import { SEVERITY_META } from '@/src/types';
+import type { Severity } from '@/types';
+import { SEVERITY_META } from '@/types';
 
 export function SeverityBadge({
   severity,

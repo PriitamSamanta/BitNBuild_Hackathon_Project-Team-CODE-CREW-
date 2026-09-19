@@ -14,7 +14,7 @@ import {
   ShieldCheck,
 } from 'lucide-react';
 import { Logo } from './Logo';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 
 export type PageId =
   | 'dashboard'

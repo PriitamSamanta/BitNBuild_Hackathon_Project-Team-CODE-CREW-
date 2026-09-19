@@ -1,6 +1,6 @@
 import { Bell, CheckCheck, Trash2, ExternalLink } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import type { PageId } from '@/src/components/Sidebar';
+import { useApp } from '@/context/AppContext';
+import type { PageId } from '@/components/Sidebar';
 
 const TYPE_META: Record<string, { color: string; dot: string; bg: string }> = {
   critical: { color: '#EF233C', dot: '🔴', bg: 'rgba(239,35,60,0.1)' },

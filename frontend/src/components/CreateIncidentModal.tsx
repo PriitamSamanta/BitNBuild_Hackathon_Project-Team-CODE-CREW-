@@ -5,13 +5,13 @@ import { useForm } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Siren, Loader2, Brain, Sparkles } from 'lucide-react';
-import { Modal } from '@/src/components/Modal';
-import { Button } from '@/src/components/ui/button';
-import { Input } from '@/src/components/ui/input';
-import { Textarea } from '@/src/components/ui/textarea';
-import { useApp } from '@/src/context/AppContext';
-import { analyzeIncident, type AIAnalysisResult } from '@/src/services/aiService';
-import { INCIDENT_TYPE_META, type IncidentSource, type IncidentType } from '@/src/types';
+import { Modal } from '@/components/Modal';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
+import { useApp } from '@/context/AppContext';
+import { analyzeIncident, type AIAnalysisResult } from '@/services/aiService';
+import { INCIDENT_TYPE_META, type IncidentSource, type IncidentType } from '@/types';
 
 const schema = z.object({
   location: z.string().trim().min(2, 'Location is required'),

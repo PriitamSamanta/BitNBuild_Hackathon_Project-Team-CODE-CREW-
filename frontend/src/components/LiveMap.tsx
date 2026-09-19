@@ -1,7 +1,10 @@
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
+
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+import 'leaflet/dist/leaflet.css';
 import { MapPin, Maximize2, RefreshCw, Crosshair } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import {
   INCIDENT_TYPE_META,
   STATUS_META,
@@ -9,8 +12,7 @@ import {
   TEAM_STATUS_META,
   CITY_CENTER,
   type Incident,
-  type Coordinates,
-} from '@/src/types';
+} from '@/types';
 
 interface LiveMapProps {
   onIncidentClick?: (id: string) => void;
@@ -21,7 +23,11 @@ interface LiveMapProps {
   className?: string;
 }
 
-function createIncidentIcon(incident: Incident): L.DivIcon {
+type LeafletApi = typeof import('leaflet');
+type LeafletMap = import('leaflet').Map;
+type LeafletLayerGroup = import('leaflet').LayerGroup;
+
+function createIncidentIcon(L: LeafletApi, incident: Incident) {
   const typeMeta = INCIDENT_TYPE_META[incident.type];
   const sevMeta = SEVERITY_META[incident.severity];
   const isResolved = incident.status === 'resolved';
@@ -30,9 +36,15 @@ function createIncidentIcon(incident: Incident): L.DivIcon {
   return L.divIcon({
     className: 'custom-marker',
     html: `
-      <div style="position: relative; display: flex; align-items: center; justify-content: center;">
-        ${pulse ? `<div class="marker-pulse" style="position: absolute; width: 36px; height: 36px; border-radius: 50%; background: ${sevMeta.color};"></div>` : ''}
-        <div style="position: relative; width: 30px; height: 30px; border-radius: 50%; background: ${isResolved ? '#10B981' : sevMeta.color}; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.4);">
+      <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+        ${
+          pulse
+            ? `<div class="marker-pulse" style="position:absolute;width:36px;height:36px;border-radius:50%;background:${sevMeta.color};"></div>`
+            : ''
+        }
+        <div style="position:relative;width:30px;height:30px;border-radius:50%;background:${
+          isResolved ? '#10B981' : sevMeta.color
+        };border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.4);">
           ${typeMeta.emoji}
         </div>
       </div>
@@ -43,11 +55,15 @@ function createIncidentIcon(incident: Incident): L.DivIcon {
   });
 }
 
-function createTeamIcon(emoji: string, color: string): L.DivIcon {
+function createTeamIcon(
+  L: LeafletApi,
+  emoji: string,
+  color: string
+) {
   return L.divIcon({
     className: 'custom-marker',
     html: `
-      <div style="position: relative; width: 24px; height: 24px; border-radius: 50%; background: ${color}; border: 2px solid #fff; display: flex; align-items: center; justify-content: center; font-size: 11px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">
+      <div style="position:relative;width:24px;height:24px;border-radius:50%;background:${color};border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:11px;box-shadow:0 2px 6px rgba(0,0,0,.4);">
         ${emoji}
       </div>
     `,
@@ -56,11 +72,11 @@ function createTeamIcon(emoji: string, color: string): L.DivIcon {
   });
 }
 
-function createHospitalIcon(): L.DivIcon {
+function createHospitalIcon(L: LeafletApi) {
   return L.divIcon({
     className: 'custom-marker',
     html: `
-      <div style="width: 26px; height: 26px; border-radius: 6px; background: #102A43; border: 2px solid #10B981; display: flex; align-items: center; justify-content: center; font-size: 13px; box-shadow: 0 2px 6px rgba(0,0,0,0.4);">
+      <div style="width:26px;height:26px;border-radius:6px;background:#102A43;border:2px solid #10B981;display:flex;align-items:center;justify-content:center;font-size:13px;box-shadow:0 2px 6px rgba(0,0,0,.4);">
         🏥
       </div>
     `,
@@ -74,137 +90,323 @@ export function LiveMap({
   height = '400px',
   showTeams = true,
   showHospitals = true,
-  fullscreen = false,
   className = '',
 }: LiveMapProps) {
   const { incidents, teams, hospitals } = useApp();
-  const mapRef = useRef<L.Map | null>(null);
+
   const containerRef = useRef<HTMLDivElement>(null);
-  const markersRef = useRef<L.LayerGroup | null>(null);
-  const teamMarkersRef = useRef<L.LayerGroup | null>(null);
-  const hospitalMarkersRef = useRef<L.LayerGroup | null>(null);
+  const mapRef = useRef<LeafletMap | null>(null);
+  const leafletRef = useRef<LeafletApi | null>(null);
 
+  const markersRef = useRef<LeafletLayerGroup | null>(null);
+  const teamMarkersRef = useRef<LeafletLayerGroup | null>(null);
+  const hospitalMarkersRef =
+    useRef<LeafletLayerGroup | null>(null);
+
+  const [mapReady, setMapReady] = useState(false);
+
+  // Leaflet is loaded ONLY in the browser.
   useEffect(() => {
-    if (!containerRef.current || mapRef.current) return;
+    let cancelled = false;
+    let map: LeafletMap | null = null;
 
-    const map = L.map(containerRef.current, {
-      center: [CITY_CENTER.lat, CITY_CENTER.lng],
-      zoom: 12,
-      zoomControl: true,
-      attributionControl: false,
-    });
+    const initializeMap = async () => {
+      if (!containerRef.current || mapRef.current) return;
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    }).addTo(map);
+      const leafletModule = await import('leaflet');
 
-    markersRef.current = L.layerGroup().addTo(map);
-    teamMarkersRef.current = L.layerGroup().addTo(map);
-    hospitalMarkersRef.current = L.layerGroup().addTo(map);
+      if (cancelled || !containerRef.current || mapRef.current) return;
 
-    mapRef.current = map;
+      const L = (leafletModule.default ?? leafletModule) as LeafletApi;
+      leafletRef.current = L;
 
-    setTimeout(() => map.invalidateSize(), 100);
+      map = L.map(containerRef.current, {
+        center: [CITY_CENTER.lat, CITY_CENTER.lng],
+        zoom: 12,
+        zoomControl: true,
+        attributionControl: false,
+      });
+
+      L.tileLayer(
+        'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',
+        {
+          maxZoom: 19,
+          attribution: '&copy; OpenStreetMap contributors',
+        }
+      ).addTo(map);
+
+      markersRef.current = L.layerGroup().addTo(map);
+      teamMarkersRef.current = L.layerGroup().addTo(map);
+      hospitalMarkersRef.current = L.layerGroup().addTo(map);
+
+      mapRef.current = map;
+      setMapReady(true);
+
+      requestAnimationFrame(() => {
+        map?.invalidateSize();
+      });
+    };
+
+    initializeMap();
 
     return () => {
-      map.remove();
-      mapRef.current = null;
+      cancelled = true;
+      setMapReady(false);
+
+      if (mapRef.current) {
+        mapRef.current.remove();
+        mapRef.current = null;
+      }
+
+      markersRef.current = null;
+      teamMarkersRef.current = null;
+      hospitalMarkersRef.current = null;
+      leafletRef.current = null;
     };
   }, []);
 
+  // Incident markers
   useEffect(() => {
-    if (!mapRef.current || !markersRef.current) return;
-    markersRef.current.clearLayers();
+    if (
+      !mapReady ||
+      !mapRef.current ||
+      !markersRef.current ||
+      !leafletRef.current
+    ) {
+      return;
+    }
 
-    incidents.filter((incident) => incident.coordinates).forEach((incident) => {
+    const L = leafletRef.current;
+    const layer = markersRef.current;
+
+    layer.clearLayers();
+
+    incidents.forEach((incident) => {
+      const coordinates = incident.coordinates;
+      if (!coordinates) return;
+
       const typeMeta = INCIDENT_TYPE_META[incident.type];
       const statusMeta = STATUS_META[incident.status];
-      const marker = L.marker([incident.coordinates.lat, incident.coordinates.lng], {
-        icon: createIncidentIcon(incident),
-      });
+      const severityMeta = SEVERITY_META[incident.severity];
+
+      const marker = L.marker(
+        [coordinates.lat, coordinates.lng],
+        {
+          icon: createIncidentIcon(L, incident),
+        }
+      );
 
       marker.bindPopup(`
-        <div style="min-width: 200px;">
-          <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 6px;">
-            <span style="font-size: 18px;">${typeMeta.emoji}</span>
+        <div style="min-width:200px;">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;">
+            <span style="font-size:18px;">${typeMeta.emoji}</span>
             <div>
-              <div style="font-weight: 700; color: #fff; font-size: 13px;">INCIDENT #${incident.id}</div>
-              <div style="color: #94A3B8; font-size: 11px;">${typeMeta.label}</div>
+              <div style="font-weight:700;color:#fff;font-size:13px;">
+                INCIDENT #${incident.id}
+              </div>
+              <div style="color:#94A3B8;font-size:11px;">
+                ${typeMeta.label}
+              </div>
             </div>
           </div>
-          <div style="display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 10px; font-weight: 700; color: ${SEVERITY_META[incident.severity].color}; background: ${SEVERITY_META[incident.severity].bgColor}; border: 1px solid ${SEVERITY_META[incident.severity].borderColor}; margin-bottom: 6px;">
-            ${SEVERITY_META[incident.severity].label} · ${incident.score}/100
+
+          <div style="display:inline-block;padding:2px 8px;border-radius:4px;font-size:10px;font-weight:700;color:${severityMeta.color};background:${severityMeta.bgColor};border:1px solid ${severityMeta.borderColor};margin-bottom:6px;">
+            ${severityMeta.label} · ${incident.score}/100
           </div>
-          <div style="color: #fff; font-size: 12px; margin-bottom: 4px;">📍 ${incident.location}</div>
-          <div style="color: #94A3B8; font-size: 11px; margin-bottom: 4px;">👥 ${incident.peopleAffected} people affected</div>
-          ${incident.assignedTeams.length > 0 ? `<div style="color: #94A3B8; font-size: 11px; margin-bottom: 4px;">🚒 ${incident.assignedTeams.length} team(s) dispatched</div>` : ''}
-          <div style="color: ${statusMeta.color}; font-size: 11px; font-weight: 600; margin-bottom: 8px;">${statusMeta.dot} ${statusMeta.label}</div>
-          ${onIncidentClick ? `<button onclick="window.__resq_open_incident('${incident.id}')" style="width: 100%; padding: 6px 12px; border-radius: 8px; background: #E63946; color: #fff; font-size: 12px; font-weight: 700; border: none; cursor: pointer;">VIEW INCIDENT</button>` : ''}
+
+          <div style="color:#fff;font-size:12px;margin-bottom:4px;">
+            📍 ${incident.location}
+          </div>
+
+          <div style="color:#94A3B8;font-size:11px;margin-bottom:4px;">
+            👥 ${incident.peopleAffected} people affected
+          </div>
+
+          ${
+            incident.assignedTeams.length > 0
+              ? `<div style="color:#94A3B8;font-size:11px;margin-bottom:4px;">
+                   🚒 ${incident.assignedTeams.length} team(s) dispatched
+                 </div>`
+              : ''
+          }
+
+          <div style="color:${statusMeta.color};font-size:11px;font-weight:600;margin-bottom:8px;">
+            ● ${statusMeta.label}
+          </div>
         </div>
       `);
 
-      markersRef.current!.addLayer(marker);
-    });
-  }, [incidents, onIncidentClick]);
+      // Avoid inline window.__... handlers. Leaflet owns the event.
+      if (onIncidentClick) {
+        marker.on('popupopen', () => {
+          // The popup itself stays safe and server-independent.
+        });
 
+        marker.on('click', () => {
+          onIncidentClick(incident.id);
+        });
+      }
+
+      layer.addLayer(marker);
+    });
+  }, [incidents, onIncidentClick, mapReady]);
+
+  // Team markers
   useEffect(() => {
-    if (!mapRef.current || !teamMarkersRef.current || !showTeams) return;
-    teamMarkersRef.current.clearLayers();
+    if (
+      !mapReady ||
+      !mapRef.current ||
+      !teamMarkersRef.current ||
+      !leafletRef.current
+    ) {
+      return;
+    }
+
+    const layer = teamMarkersRef.current;
+
+    layer.clearLayers();
+
+    if (!showTeams) return;
+
+    const L = leafletRef.current;
 
     teams.forEach((team) => {
       if (team.status === 'offline') return;
+
       const meta = TEAM_STATUS_META[team.status];
+
       const emoji =
-        team.type === 'fire' ? '🚒' :
-        team.type === 'medical' ? '🚑' :
-        team.type === 'chemical' ? '☣' :
-        team.type === 'flood' ? '🚤' : '🚗';
-      const marker = L.marker([team.coordinates.lat, team.coordinates.lng], {
-        icon: createTeamIcon(emoji, meta.color),
-      });
+        team.type === 'fire'
+          ? '🚒'
+          : team.type === 'medical'
+            ? '🚑'
+            : team.type === 'chemical'
+              ? '☣'
+              : team.type === 'flood'
+                ? '🚤'
+                : '🚗';
+
+      const marker = L.marker(
+        [team.coordinates.lat, team.coordinates.lng],
+        {
+          icon: createTeamIcon(L, emoji, meta.color),
+        }
+      );
+
       marker.bindPopup(`
-        <div style="min-width: 160px;">
-          <div style="font-weight: 700; color: #fff; font-size: 13px;">${team.name}</div>
-          <div style="color: #94A3B8; font-size: 11px; margin-top: 2px;">🚗 ${team.vehicle}</div>
-          <div style="color: ${meta.color}; font-size: 11px; font-weight: 600; margin-top: 4px;">${meta.dot} ${meta.label}</div>
-          ${team.eta ? `<div style="color: #94A3B8; font-size: 11px; margin-top: 2px;">ETA: ${team.eta} min</div>` : ''}
-          ${team.destination ? `<div style="color: #94A3B8; font-size: 11px;">→ ${team.destination}</div>` : ''}
+        <div style="min-width:160px;">
+          <div style="font-weight:700;color:#fff;font-size:13px;">
+            ${team.name}
+          </div>
+
+          <div style="color:#94A3B8;font-size:11px;margin-top:2px;">
+            🚗 ${team.vehicle}
+          </div>
+
+          <div style="color:${meta.color};font-size:11px;font-weight:600;margin-top:4px;">
+            ● ${meta.label}
+          </div>
+
+          ${
+            team.eta
+              ? `<div style="color:#94A3B8;font-size:11px;margin-top:2px;">
+                   ETA: ${team.eta} min
+                 </div>`
+              : ''
+          }
+
+          ${
+            team.destination
+              ? `<div style="color:#94A3B8;font-size:11px;">
+                   → ${team.destination}
+                 </div>`
+              : ''
+          }
         </div>
       `);
-      teamMarkersRef.current!.addLayer(marker);
-    });
-  }, [teams, showTeams]);
 
+      layer.addLayer(marker);
+    });
+  }, [teams, showTeams, mapReady]);
+
+  // Hospital markers
   useEffect(() => {
-    if (!mapRef.current || !hospitalMarkersRef.current || !showHospitals) return;
-    hospitalMarkersRef.current.clearLayers();
+    if (
+      !mapReady ||
+      !mapRef.current ||
+      !hospitalMarkersRef.current ||
+      !leafletRef.current
+    ) {
+      return;
+    }
 
-    hospitals.forEach((h) => {
-      const marker = L.marker([h.coordinates.lat, h.coordinates.lng], {
-        icon: createHospitalIcon(),
-      });
+    const layer = hospitalMarkersRef.current;
+
+    layer.clearLayers();
+
+    if (!showHospitals) return;
+
+    const L = leafletRef.current;
+
+    hospitals.forEach((hospital) => {
+      const marker = L.marker(
+        [hospital.coordinates.lat, hospital.coordinates.lng],
+        {
+          icon: createHospitalIcon(L),
+        }
+      );
+
+      const statusColor =
+        hospital.status === 'available'
+          ? '#10B981'
+          : hospital.status === 'busy'
+            ? '#F59E0B'
+            : '#EF233C';
+
       marker.bindPopup(`
-        <div style="min-width: 160px;">
-          <div style="font-weight: 700; color: #fff; font-size: 13px;">🏥 ${h.name}</div>
-          <div style="color: #94A3B8; font-size: 11px; margin-top: 2px;">📍 ${h.location}</div>
-          <div style="color: #fff; font-size: 11px; margin-top: 4px;">Emergency Beds: ${h.emergencyBeds}</div>
-          <div style="color: #fff; font-size: 11px;">ICU: ${h.icuBeds}</div>
-          <div style="color: ${h.status === 'available' ? '#10B981' : h.status === 'busy' ? '#F59E0B' : '#EF233C'}; font-size: 11px; font-weight: 600; margin-top: 4px;">${h.status.toUpperCase()}</div>
+        <div style="min-width:160px;">
+          <div style="font-weight:700;color:#fff;font-size:13px;">
+            🏥 ${hospital.name}
+          </div>
+
+          <div style="color:#94A3B8;font-size:11px;margin-top:2px;">
+            📍 ${hospital.location}
+          </div>
+
+          <div style="color:#fff;font-size:11px;margin-top:4px;">
+            Emergency Beds: ${hospital.emergencyBeds}
+          </div>
+
+          <div style="color:#fff;font-size:11px;">
+            ICU: ${hospital.icuBeds}
+          </div>
+
+          <div style="color:${statusColor};font-size:11px;font-weight:600;margin-top:4px;">
+            ${hospital.status.toUpperCase()}
+          </div>
         </div>
       `);
-      hospitalMarkersRef.current!.addLayer(marker);
+
+      layer.addLayer(marker);
     });
-  }, [hospitals, showHospitals]);
+  }, [hospitals, showHospitals, mapReady]);
 
   const handleLocate = () => {
-    if (!navigator.geolocation) return;
+    if (!navigator.geolocation || !mapRef.current) return;
+
     navigator.geolocation.getCurrentPosition(
-      (pos) => {
-        mapRef.current?.setView([pos.coords.latitude, pos.coords.longitude], 14);
+      (position) => {
+        mapRef.current?.setView(
+          [position.coords.latitude, position.coords.longitude],
+          14
+        );
       },
       () => {
-        mapRef.current?.setView([CITY_CENTER.lat, CITY_CENTER.lng], 13);
-      },
+        mapRef.current?.setView(
+          [CITY_CENTER.lat, CITY_CENTER.lng],
+          13
+        );
+      }
     );
   };
 
@@ -212,12 +414,21 @@ export function LiveMap({
     mapRef.current?.invalidateSize();
   };
 
-  const handleFullscreen = () => {
+  const handleFullscreen = async () => {
     if (!containerRef.current) return;
-    if (document.fullscreenElement) {
-      document.exitFullscreen();
-    } else {
-      containerRef.current.requestFullscreen?.();
+
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await containerRef.current.requestFullscreen?.();
+      }
+
+      setTimeout(() => {
+        mapRef.current?.invalidateSize();
+      }, 150);
+    } catch {
+      // Fullscreen can be blocked by browser permissions.
     }
   };
 
@@ -230,20 +441,25 @@ export function LiveMap({
 
       <div className="absolute right-3 top-3 z-[500] flex flex-col gap-1.5">
         <button
+          type="button"
           onClick={handleLocate}
           title="Locate me"
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-navy-border bg-navy-card/90 text-secondary shadow-lg backdrop-blur transition-colors hover:text-white"
         >
           <Crosshair size={16} />
         </button>
+
         <button
+          type="button"
           onClick={handleRefresh}
-          title="Refresh"
+          title="Refresh map"
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-navy-border bg-navy-card/90 text-secondary shadow-lg backdrop-blur transition-colors hover:text-white"
         >
           <RefreshCw size={16} />
         </button>
+
         <button
+          type="button"
           onClick={handleFullscreen}
           title="Fullscreen"
           className="flex h-9 w-9 items-center justify-center rounded-lg border border-navy-border bg-navy-card/90 text-secondary shadow-lg backdrop-blur transition-colors hover:text-white"
@@ -254,19 +470,28 @@ export function LiveMap({
 
       <div className="absolute bottom-3 left-3 z-[500] flex flex-wrap gap-2 rounded-lg border border-navy-border bg-navy-card/90 px-3 py-2 shadow-lg backdrop-blur">
         <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-emergency-critical" /> Critical
+          <span className="h-2.5 w-2.5 rounded-full bg-emergency-critical" />
+          Critical
         </span>
+
         <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-warning" /> High
+          <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+          High
         </span>
+
         <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-warning" /> Medium
+          <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+          Medium
         </span>
+
         <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-royal" /> Low
+          <span className="h-2.5 w-2.5 rounded-full bg-royal" />
+          Low
         </span>
+
         <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-response" /> Resolved
+          <span className="h-2.5 w-2.5 rounded-full bg-response" />
+          Resolved
         </span>
       </div>
     </div>

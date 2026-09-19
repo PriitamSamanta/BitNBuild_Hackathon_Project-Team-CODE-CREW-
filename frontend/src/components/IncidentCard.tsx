@@ -1,5 +1,5 @@
-import type { Incident } from '@/src/types';
-import { INCIDENT_TYPE_META, STATUS_META, SOURCE_META } from '@/src/types';
+import type { Incident } from '@/types';
+import { INCIDENT_TYPE_META, STATUS_META, SOURCE_META } from '@/types';
 import { SeverityBadge } from './SeverityBadge';
 import { MapPin, Users, Clock } from 'lucide-react';
 

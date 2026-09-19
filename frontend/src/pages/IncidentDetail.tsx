@@ -1,3 +1,5 @@
+'use client'; 
+
 import { useState } from 'react';
 import {
   ArrowLeft,
@@ -14,19 +16,31 @@ import {
   HardHat,
   Shield,
 } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import { AIIntensityEngine } from '@/src/components/AIIntensityEngine';
-import { ActionPlanModal } from '@/src/components/ActionPlanModal';
-import { LiveMap } from '@/src/components/LiveMap';
-import { SeverityBadge } from '@/src/components/SeverityBadge';
+import { useApp } from '@/context/AppContext';
+import { AIIntensityEngine } from '@/components/AIIntensityEngine';
+import { ActionPlanModal } from '@/components/ActionPlanModal';
+import dynamic from 'next/dynamic';
+
+const LiveMap = dynamic(
+  () => import('@/components/LiveMap').then((mod) => mod.LiveMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[420px] items-center justify-center rounded-xl border border-navy-border bg-navy-card text-secondary">
+        Loading emergency map...
+      </div>
+    ),
+  }
+);
+import { SeverityBadge } from '@/components/SeverityBadge';
 import {
   INCIDENT_TYPE_META,
   STATUS_META,
   SOURCE_META,
   RESOURCE_TYPE_META,
   type Incident,
-} from '@/src/types';
-import { generateActionPlan, detectEscalation } from '@/src/services/aiService';
+} from '@/types';
+import { generateActionPlan, detectEscalation } from '@/services/aiService';
 
 interface IncidentDetailProps {
   incident: Incident;

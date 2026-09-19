@@ -2,7 +2,7 @@
 
 import { createContext, useCallback, useContext, type ReactNode } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { Incident, Resource, Team, Hospital, Notification, Alert, ChatMessage } from '@/src/types';
+import type { Incident, Resource, Team, Hospital, Notification, Alert, ChatMessage } from '@/types';
 
 type AppState = {
   incidents: Incident[];
