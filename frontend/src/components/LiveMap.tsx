@@ -223,9 +223,9 @@ export function LiveMap({
           </div>
 
           ${
-            incident.assignedTeams.length > 0
+            incident.assignedTeamss.length > 0
               ? `<div style="color:#94A3B8;font-size:11px;margin-bottom:4px;">
-                   🚒 ${incident.assignedTeams.length} team(s) dispatched
+                   🚒 ${incident.assignedTeamss.length} team(s) dispatched
                  </div>`
               : ''
           }

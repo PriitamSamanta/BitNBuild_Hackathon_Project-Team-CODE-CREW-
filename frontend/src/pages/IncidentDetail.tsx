@@ -192,9 +192,9 @@ export function IncidentDetail({ incident, onBack, onOpenIncident }: IncidentDet
 
           <div className="rounded-xl border border-navy-border bg-navy-card p-4">
             <h3 className="text-sm font-bold text-white mb-3">Response</h3>
-            {incident.assignedTeams.length > 0 ? (
+            {incident.assignedTeamss.length > 0 ? (
               <div className="space-y-2">
-                {incident.assignedTeams.map((teamId) => {
+                {incident.assignedTeamss.map((teamId) => {
                   const team = teams.find((t) => t.id === teamId);
                   const resource = teams.find((t) => t.id === teamId);
                   return (

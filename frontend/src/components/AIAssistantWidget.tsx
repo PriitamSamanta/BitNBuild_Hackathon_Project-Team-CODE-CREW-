@@ -20,7 +20,7 @@ function generateResponse(question: string, incidents: any[], teams: any[], reso
   if (lower.includes('highest') || lower.includes('priority') || lower.includes('top')) {
     if (topPriority) {
       const meta = INCIDENT_TYPE_META[topPriority.type as keyof typeof INCIDENT_TYPE_META];
-      return `Highest priority: #${topPriority.id}, ${meta.label} at ${topPriority.location}. Score: ${topPriority.score}/100. ${topPriority.assignedTeams.length} team(s) responding.`;
+      return `Highest priority: #${topPriority.id}, ${meta.label} at ${topPriority.location}. Score: ${topPriority.score}/100. ${topPriority.assignedTeamss.length} team(s) responding.`;
     }
     return 'No active incidents.';
   }

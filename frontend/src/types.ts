@@ -109,7 +109,7 @@ export interface Incident {
 
   status: IncidentStatus;
 
-  assignedTeams: string[];
+  assignedTeamss: string[];
   recommendedResources: RecommendedResource[];
 
   createdAt: string;

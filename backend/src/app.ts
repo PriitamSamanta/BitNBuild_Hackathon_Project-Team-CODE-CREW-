@@ -9,6 +9,9 @@ import aiRoutes from "./routes/ai.routes.js";
 import teamRoutes from "./routes/team.routes.js";
 import recommendationRoutes from "./routes/recommendation.routes.js";
 import dispatchRoutes from "./routes/dispatch.routes.js";
+import incidentStatusRoutes from "./routes/incident-status.routes.js";
+import teamStatusRoutes from "./routes/team-status.routes.js";
+import duplicateDetectionRoutes from "./routes/duplicate-detection.routes.js";
 const app = express();
 
 app.use(helmet());
@@ -32,4 +35,7 @@ app.use("/api/ai", aiRoutes);
 app.use("/api/teams", teamRoutes);
 app.use("/api", recommendationRoutes);
 app.use("/api", dispatchRoutes);
+app.use("/api", incidentStatusRoutes);
+app.use("/api", teamStatusRoutes);
+app.use("/api", duplicateDetectionRoutes);
 export default app;

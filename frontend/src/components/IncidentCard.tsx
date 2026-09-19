@@ -77,9 +77,9 @@ export function IncidentCard({ incident, onClick, compact }: IncidentCardProps) 
             {statusMeta.label}
           </span>
         </div>
-        {incident.assignedTeams.length > 0 && (
+        {incident.assignedTeamss.length > 0 && (
           <span className="text-xs text-secondary">
-            {incident.assignedTeams.length} team{incident.assignedTeams.length > 1 ? 's' : ''} dispatched
+            {incident.assignedTeamss.length} team{incident.assignedTeamss.length > 1 ? 's' : ''} dispatched
           </span>
         )}
       </div>
