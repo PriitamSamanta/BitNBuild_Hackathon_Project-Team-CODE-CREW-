@@ -1,25 +1,26 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { AppProvider, useApp } from '@/src/context/AppContext';
-import { Sidebar, type PageId } from '@/src/components/Sidebar';
-import { Header } from '@/src/components/Header';
-import { NotificationPanel } from '@/src/components/NotificationPanel';
-import { CreateIncidentModal } from '@/src/components/CreateIncidentModal';
-import { AIAssistantWidget } from '@/src/components/AIAssistantWidget';
-import { Dashboard } from '@/src/pages/Dashboard';
-import { Incidents } from '@/src/pages/Incidents';
-import { IncidentDetail } from '@/src/pages/IncidentDetail';
-import { LiveMapPage } from '@/src/pages/LiveMapPage';
-import { Resources } from '@/src/pages/Resources';
-import { Teams } from '@/src/pages/Teams';
-import { Hospitals } from '@/src/pages/Hospitals';
-import { AIAssistantPage } from '@/src/pages/AIAssistantPage';
-import { Analytics } from '@/src/pages/Analytics';
-import { RiskHeatmap } from '@/src/pages/RiskHeatmap';
-import { Alerts } from '@/src/pages/Alerts';
-import { Settings } from '@/src/pages/Settings';
-import { NotificationsPage } from '@/src/pages/NotificationsPage';
+import { AppProvider, useApp } from '@/context/AppContext';
+import { Sidebar, type PageId } from '@/components/Sidebar';
+import { Header } from '@/components/Header';
+import { NotificationPanel } from '@/components/NotificationPanel';
+import { CreateIncidentModal } from '@/components/CreateIncidentModal';
+import { AIAssistantWidget } from '@/components/AIAssistantWidget';
+
+import { Dashboard } from '@/pages/Dashboard';
+import { Incidents } from '@/pages/Incidents';
+import { IncidentDetail } from '@/pages/IncidentDetail';
+import { LiveMapPage } from '@/pages/LiveMapPage';
+import { Resources } from '@/pages/Resources';
+import { Teams } from '@/pages/Teams';
+import { Hospitals } from '@/pages/Hospitals';
+import { AIAssistantPage } from '@/pages/AIAssistantPage';
+import { Analytics } from '@/pages/Analytics';
+import { RiskHeatmap } from '@/pages/RiskHeatmap';
+import { Alerts } from '@/pages/Alerts';
+import { Settings } from '@/pages/Settings';
+import { NotificationsPage } from '@/pages/NotificationsPage';
 
 function CommandCenter() {
   const { incidents } = useApp();

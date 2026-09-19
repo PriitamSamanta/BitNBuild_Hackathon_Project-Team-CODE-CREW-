@@ -1,6 +1,6 @@
 import { RotateCcw, Settings as SettingsIcon, Info, Trash2, Database, Server } from 'lucide-react';
 import { useState } from 'react';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 
 export function Settings() {
   const { resetState, incidents, resources, teams, hospitals } = useApp();

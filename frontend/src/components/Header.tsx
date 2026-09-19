@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bell, ChevronDown, Plus, MapPin, Menu, Search } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 import type { PageId } from './Sidebar';
 
 interface HeaderProps {

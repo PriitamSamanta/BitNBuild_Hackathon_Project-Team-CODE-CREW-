@@ -1,8 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { Bot, Send, Sparkles } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import { generateSummary } from '@/src/services/aiService';
-import { INCIDENT_TYPE_META, type ChatMessage } from '@/src/types';
+import { useApp } from '@/context/AppContext';
+import { generateSummary } from '@/services/aiService';
+import { INCIDENT_TYPE_META, type ChatMessage } from '@/types';
 
 const SUGGESTED_QUESTIONS = [
   'What is the highest priority incident?',

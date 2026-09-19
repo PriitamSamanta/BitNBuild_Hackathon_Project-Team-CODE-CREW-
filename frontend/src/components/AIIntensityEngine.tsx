@@ -1,5 +1,5 @@
-import type { Incident } from '@/src/types';
-import { SEVERITY_META } from '@/src/types';
+import type { Incident } from '@/types';
+import { SEVERITY_META } from '@/types';
 import { Brain, CheckCircle2 } from 'lucide-react';
 
 export function AIIntensityEngine({ incident }: { incident: Incident }) {

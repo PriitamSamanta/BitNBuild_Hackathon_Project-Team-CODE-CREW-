@@ -1,9 +1,9 @@
 import { useState } from 'react';
 import { Hospital as HospitalIcon, Bed, Heart, Truck, MapPin, Brain } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import { Modal } from '@/src/components/Modal';
-import { allocateHospitals } from '@/src/services/aiService';
-import type { Hospital } from '@/src/types';
+import { useApp } from '@/context/AppContext';
+import { Modal } from '@/components/Modal';
+import { allocateHospitals } from '@/services/aiService';
+import type { Hospital } from '@/types';
 
 export function Hospitals() {
   const { hospitals, incidents } = useApp();

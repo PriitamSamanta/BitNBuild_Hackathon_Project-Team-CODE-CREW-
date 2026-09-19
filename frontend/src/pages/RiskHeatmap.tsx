@@ -2,9 +2,9 @@
 
 import { useMemo, useState } from 'react';
 import { Flame, Waves, Car, Biohazard, Filter } from 'lucide-react';
-import { LiveMap } from '@/src/components/LiveMap';
-import { useApp } from '@/src/context/AppContext';
-import type { IncidentType } from '@/src/types';
+import { LiveMap } from '@/components/LiveMap';
+import { useApp } from '@/context/AppContext';
+import type { IncidentType } from '@/types';
 
 type RiskType = Extract<IncidentType, 'fire' | 'flood' | 'accident' | 'chemical'>;
 const RISK_META: Record<RiskType, { label: string; emoji: string; icon: typeof Flame; color: string }> = { fire: { label: 'Fire Risk', emoji: '🔥', icon: Flame, color: '#EF233C' }, flood: { label: 'Flood Risk', emoji: '🌊', icon: Waves, color: '#1565D8' }, accident: { label: 'Accident Risk', emoji: '🚗', icon: Car, color: '#F59E0B' }, chemical: { label: 'Chemical Risk', emoji: '☣', icon: Biohazard, color: '#7C3AED' } };

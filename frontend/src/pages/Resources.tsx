@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Truck, Ambulance, HardHat, Plane, Ship, BriefcaseMedical, Flame, GitBranch, AlertTriangle } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import { Modal } from '@/src/components/Modal';
-import { RESOURCE_TYPE_META, type Resource, type ResourceType } from '@/src/types';
+import { useApp } from '@/context/AppContext';
+import { Modal } from '@/components/Modal';
+import { RESOURCE_TYPE_META, type Resource, type ResourceType } from '@/types';
 
 const ICON_MAP: Record<string, typeof Truck> = {
   'fire-tender': Flame,

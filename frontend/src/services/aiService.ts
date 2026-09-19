@@ -7,8 +7,8 @@ import type {
   RecommendedResource,
   Team,
   Hospital,
-} from '@/src/types';
-import { INCIDENT_TYPE_META } from '@/src/types';
+} from '@/types';
+import { INCIDENT_TYPE_META } from '@/types';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
 

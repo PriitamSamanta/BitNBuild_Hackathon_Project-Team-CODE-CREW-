@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { useApp } from '@/src/context/AppContext';
-import { LiveMap } from '@/src/components/LiveMap';
-import { IncidentCard } from '@/src/components/IncidentCard';
+import { useApp } from '@/context/AppContext';
+import { LiveMap } from '@/components/LiveMap';
+import { IncidentCard } from '@/components/IncidentCard';
 
 interface LiveMapPageProps {
   onOpenIncident: (id: string) => void;

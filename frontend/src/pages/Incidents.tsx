@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Filter, Search } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import { IncidentCard } from '@/src/components/IncidentCard';
-import { INCIDENT_TYPE_META, type Severity, type IncidentSource } from '@/src/types';
+import { useApp } from '@/context/AppContext';
+import { IncidentCard } from '@/components/IncidentCard';
+import { INCIDENT_TYPE_META, type Severity, type IncidentSource } from '@/types';
 
 interface IncidentsProps {
   onOpenIncident: (id: string) => void;

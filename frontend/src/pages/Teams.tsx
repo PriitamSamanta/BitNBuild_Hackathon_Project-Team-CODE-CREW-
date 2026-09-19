@@ -1,8 +1,8 @@
 import { useState } from 'react';
 import { Phone, MapPin, Navigation } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import { Modal } from '@/src/components/Modal';
-import { INCIDENT_TYPE_META, TEAM_STATUS_META, type Team, type TeamStatus } from '@/src/types';
+import { useApp } from '@/context/AppContext';
+import { Modal } from '@/components/Modal';
+import { INCIDENT_TYPE_META, TEAM_STATUS_META, type Team, type TeamStatus } from '@/types';
 
 interface TeamsProps {
   onOpenIncident: (id: string) => void;

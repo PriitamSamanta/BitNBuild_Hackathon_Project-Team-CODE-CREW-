@@ -1,10 +1,23 @@
+'use client';
 import { Siren, AlertTriangle, Users, Clock, Zap, ArrowRight } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
-import { KPICard } from '@/src/components/KPICard';
-import { LiveMap } from '@/src/components/LiveMap';
-import { IncidentCard } from '@/src/components/IncidentCard';
-import { AIIntensityEngine } from '@/src/components/AIIntensityEngine';
-import type { PageId } from '@/src/components/Sidebar';
+import { useApp } from '@/context/AppContext';
+import { KPICard } from '@/components/KPICard';
+import dynamic from 'next/dynamic';
+
+const LiveMap = dynamic(
+  () => import('@/components/LiveMap').then((mod) => mod.LiveMap),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[420px] items-center justify-center rounded-xl border border-navy-border bg-navy-card text-secondary">
+        Loading emergency map...
+      </div>
+    ),
+  }
+);
+import { IncidentCard } from '@/components/IncidentCard';
+import { AIIntensityEngine } from '@/components/AIIntensityEngine';
+import type { PageId } from '@/components/Sidebar';
 
 interface DashboardProps {
   onNavigate: (page: PageId) => void;

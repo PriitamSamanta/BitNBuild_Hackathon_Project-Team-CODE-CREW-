@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Megaphone, Send, CheckCircle2, Radio } from 'lucide-react';
-import { useApp } from '@/src/context/AppContext';
+import { useApp } from '@/context/AppContext';
 
 const TARGETS = [
   { id: 'Fire Teams', emoji: '🚒' },
