@@ -6,6 +6,7 @@ import authRoutes from "./routes/auth.routes.js";
 import incidentRoutes from "./routes/incident.routes.js";
 import reportRoutes from "./routes/report.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
+import teamRoutes from "./routes/team.routes.js";
 
 const app = express();
 
@@ -27,5 +28,5 @@ app.use("/api/auth", authRoutes);
 app.use("/api/incidents", incidentRoutes);
 app.use("/api/reports", reportRoutes);
 app.use("/api/ai", aiRoutes);
-
+app.use("/api/teams", teamRoutes);
 export default app;
