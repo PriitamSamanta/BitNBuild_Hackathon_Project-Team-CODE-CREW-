@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
-import '../src/index.css';
-import { Providers } from '@/src/providers/Providers';
+import '../index.css';
+import { Providers } from '@/providers/Providers';
 
 export const metadata: Metadata = {
   title: 'RES-Q Emergency Command Center',
