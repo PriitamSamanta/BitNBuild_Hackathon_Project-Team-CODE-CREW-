@@ -89,7 +89,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const dispatchTeam = useCallback((teamId: string, incidentId: string) => updateState((s) => ({
     ...s,
     teams: s.teams.map((t) => t.id === teamId ? { ...t, status: 'en-route', assignedIncident: incidentId, destination: s.incidents.find((i) => i.id === incidentId)?.location } : t),
-    incidents: s.incidents.map((i) => i.id === incidentId && !i.assignedTeams.includes(teamId) ? { ...i, assignedTeams: [...i.assignedTeams, teamId], status: 'responding', updatedAt: new Date().toISOString() } : i),
+    incidents: s.incidents.map((i) => i.id === incidentId && !i.assignedTeamss.includes(teamId) ? { ...i, assignedTeamss: [...i.assignedTeamss, teamId], status: 'responding', updatedAt: new Date().toISOString() } : i),
   })), [updateState]);
   const updateTeamStatus = useCallback((teamId: string, status: Team['status']) => updateState((s) => ({ ...s, teams: s.teams.map((t) => t.id === teamId ? { ...t, status } : t) })), [updateState]);
   const updateResource = useCallback((id: string, updates: Partial<Resource>) => updateState((s) => ({ ...s, resources: s.resources.map((r) => r.id === id ? { ...r, ...updates } : r) })), [updateState]);

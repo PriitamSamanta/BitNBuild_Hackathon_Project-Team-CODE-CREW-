@@ -43,9 +43,14 @@ export const getAll = async (
       data: incidents,
     });
   } catch (error) {
+    console.error("GET INCIDENTS ERROR:", error);
+
     res.status(500).json({
       success: false,
-      message: "Failed to fetch incidents",
+      message:
+        error instanceof Error
+          ? error.message
+          : "Failed to fetch incidents",
     });
   }
 };

@@ -63,7 +63,7 @@ export function CreateIncidentModal({ open, onClose, onCreated }: Props) {
       id, type: result.type, title, location: values.location, coordinates,
       severity: result.severity, score: result.score, confidence: result.confidence,
       source: values.source, peopleAffected: values.peopleAffected, status: 'verified' as const,
-      assignedTeams: [], recommendedResources: result.recommendedResources, createdAt: now, updatedAt: now,
+      assignedTeamss: [], recommendedResources: result.recommendedResources, createdAt: now, updatedAt: now,
       description: values.description,
       timeline: [
         { time: new Date().toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }), event: 'Incident created', icon: '📝' },

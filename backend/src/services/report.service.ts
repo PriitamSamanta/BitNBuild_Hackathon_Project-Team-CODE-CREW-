@@ -1,6 +1,8 @@
 import Report from "../models/Report.js";
 import Incident from "../models/Incident.js";
 import { analyzeEmergencyReport } from "./ai.service.js";
+import { findDuplicateIncidents } from "./duplicate-detection.service.js";
+import { emitSocketEvent } from "../config/socket.js";
 
 interface CreateReportData {
   description: string;
@@ -54,6 +56,72 @@ export const createReport = async (data: CreateReportData) => {
     data.description
   );
 
+  const duplicateCandidates = await findDuplicateIncidents({
+    description: data.description,
+    latitude: data.location.latitude,
+    longitude: data.location.longitude,
+    type: aiAnalysis.type,
+  });
+
+  const duplicateIncident = duplicateCandidates.find(
+    (candidate) => candidate.score >= 0.6
+  );
+
+  if (duplicateIncident) {
+    const existingIncident = await Incident.findOne({
+      incidentId: duplicateIncident.incidentId,
+    });
+
+    if (!existingIncident) {
+      throw new Error("Matched incident could not be found");
+    }
+
+    const reportId = `REP-${String(
+      (await Report.countDocuments()) + 1
+    ).padStart(4, "0")}`;
+
+    const report = await Report.create({
+      reportId,
+      description: data.description,
+      type: aiAnalysis.type,
+      location: data.location,
+      ...(data.peopleAffected !== undefined
+        ? { peopleAffected: data.peopleAffected }
+        : {}),
+      ...(data.peopleTrapped !== undefined
+        ? { peopleTrapped: data.peopleTrapped }
+        : {}),
+      ...(data.medicalAssistance !== undefined
+        ? { medicalAssistance: data.medicalAssistance }
+        : {}),
+      ...(data.reporterName !== undefined
+        ? { reporterName: data.reporterName }
+        : {}),
+      ...(data.reporterPhone !== undefined
+        ? { reporterPhone: data.reporterPhone }
+        : {}),
+      ...(data.source !== undefined
+        ? { source: data.source }
+        : {}),
+      status: "linked",
+      incidentId: existingIncident._id,
+    });
+
+    emitSocketEvent("report:linked", {
+      reportId: report.reportId,
+      incidentId: existingIncident.incidentId,
+      incidentMongoId: existingIncident._id.toString(),
+      duplicateScore: duplicateIncident.score,
+    });
+
+    return {
+      report,
+      incident: existingIncident,
+      aiAnalysis,
+      duplicate: true,
+      duplicateScore: duplicateIncident.score,
+    };
+  }
   // ----------------------------------------
   // 4. Generate Incident ID
   // ----------------------------------------

@@ -39,11 +39,11 @@ export const createIncident = async (data: CreateIncidentData) => {
 export const getIncidents = async () => {
   return Incident.find()
     .sort({ createdAt: -1 })
-    .populate("assignedTeam");
+    .populate("assignedTeams");
 };
 
 export const getIncidentById = async (id: string) => {
-  return Incident.findById(id).populate("assignedTeam");
+  return Incident.findById(id).populate("assignedTeams");
 };
 
 export const updateIncident = async (
@@ -57,7 +57,7 @@ export const updateIncident = async (
       new: true,
       runValidators: true,
     }
-  ).populate("assignedTeam");
+  ).populate("assignedTeams");
 };
 
 export const deleteIncident = async (id: string) => {

@@ -23,7 +23,7 @@ function generateResponse(question: string, incidents: any[], teams: any[], reso
   if (lower.includes('highest priority') || lower.includes('top priority') || lower.includes('most critical')) {
     if (topPriority) {
       const meta = INCIDENT_TYPE_META[topPriority.type as keyof typeof INCIDENT_TYPE_META];
-      return `The highest priority incident is #${topPriority.id}, a ${meta.label.toLowerCase()} at ${topPriority.location}.\n\nSeverity: ${topPriority.score}/100 (${topPriority.severity.toUpperCase()})\nConfidence: ${topPriority.confidence}%\nPeople affected: ${topPriority.peopleAffected}\nStatus: ${topPriority.status}\n\n${topPriority.assignedTeams.length} team(s) are currently responding.`;
+      return `The highest priority incident is #${topPriority.id}, a ${meta.label.toLowerCase()} at ${topPriority.location}.\n\nSeverity: ${topPriority.score}/100 (${topPriority.severity.toUpperCase()})\nConfidence: ${topPriority.confidence}%\nPeople affected: ${topPriority.peopleAffected}\nStatus: ${topPriority.status}\n\n${topPriority.assignedTeamss.length} team(s) are currently responding.`;
     }
     return 'No active incidents at this time.';
   }
