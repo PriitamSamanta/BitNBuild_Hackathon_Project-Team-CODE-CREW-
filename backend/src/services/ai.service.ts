@@ -8,7 +8,7 @@ export interface IncidentAnalysis {
     | "flood"
     | "accident"
     | "medical"
-    | "chemical Disaster"
+    | "chemical"
     | "structural"
     | "road"
     | "other";

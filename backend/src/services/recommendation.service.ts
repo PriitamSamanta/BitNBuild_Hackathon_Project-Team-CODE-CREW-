@@ -30,8 +30,8 @@ const calculateDistanceKm = (
   const a =
     Math.sin(dLat / 2) ** 2 +
     Math.cos(toRadians(lat1)) *
-      Math.cos(toRadians(lat2)) *
-      Math.sin(dLon / 2) ** 2;
+    Math.cos(toRadians(lat2)) *
+    Math.sin(dLon / 2) ** 2;
 
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 
@@ -48,11 +48,11 @@ const getRequiredTeams = (
 }[] => {
   const requirements: {
     type:
-      | "fire"
-      | "medical"
-      | "police"
-      | "rescue"
-      | "disaster_response";
+    | "fire"
+    | "medical"
+    | "police"
+    | "rescue"
+    | "disaster_response";
     reason: string;
   }[] = [];
 
@@ -156,6 +156,10 @@ export const getRecommendations = async (
 
     const nearest = matchingTeams[0];
 
+    if (!nearest) {
+      continue;
+    }
+
     recommendations.push({
       teamId: nearest.team.teamId,
       name: nearest.team.name,
@@ -163,7 +167,9 @@ export const getRecommendations = async (
       status: nearest.team.status,
       distanceKm: Number(nearest.distanceKm.toFixed(2)),
       capabilities: nearest.team.capabilities,
-      contactNumber: nearest.team.contactNumber,
+      ...(nearest.team.contactNumber
+        ? { contactNumber: nearest.team.contactNumber }
+        : {}),
       reason: requirement.reason,
     });
   }

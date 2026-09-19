@@ -1,5 +1,4 @@
 import type { Request, Response } from "express";
-
 import {
   createReport,
   getReports,
@@ -10,22 +9,51 @@ import {
 export const create = async (
   req: Request,
   res: Response
-) => {
+): Promise<void> => {
   try {
-    const report = await createReport(req.body);
+    const {
+      description,
+      location,
+    } = req.body;
+
+    if (!description) {
+      res.status(400).json({
+        success: false,
+        message: "Description is required",
+      });
+
+      return;
+    }
+
+    if (
+      !location ||
+      typeof location.latitude !== "number" ||
+      typeof location.longitude !== "number"
+    ) {
+      res.status(400).json({
+        success: false,
+        message: "Valid location is required",
+      });
+
+      return;
+    }
+
+    const result = await createReport(req.body);
 
     res.status(201).json({
       success: true,
-      message: "Emergency report submitted successfully",
-      data: report,
+      message: "Emergency report analyzed and incident created successfully",
+      data: result,
     });
   } catch (error) {
-    res.status(400).json({
+    console.error("Create report error:", error);
+
+    res.status(500).json({
       success: false,
       message:
         error instanceof Error
           ? error.message
-          : "Failed to submit report",
+          : "Failed to create emergency report",
     });
   }
 };
@@ -33,7 +61,7 @@ export const create = async (
 export const getAll = async (
   _req: Request,
   res: Response
-) => {
+): Promise<void> => {
   try {
     const reports = await getReports();
 
@@ -52,7 +80,7 @@ export const getAll = async (
 export const getOne = async (
   req: Request,
   res: Response
-) => {
+): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -61,6 +89,7 @@ export const getOne = async (
         success: false,
         message: "Invalid report ID",
       });
+
       return;
     }
 
@@ -71,6 +100,7 @@ export const getOne = async (
         success: false,
         message: "Report not found",
       });
+
       return;
     }
 
@@ -89,7 +119,7 @@ export const getOne = async (
 export const update = async (
   req: Request,
   res: Response
-) => {
+): Promise<void> => {
   try {
     const { id } = req.params;
 
@@ -98,6 +128,7 @@ export const update = async (
         success: false,
         message: "Invalid report ID",
       });
+
       return;
     }
 
@@ -108,6 +139,7 @@ export const update = async (
         success: false,
         message: "Report not found",
       });
+
       return;
     }
 
@@ -117,12 +149,9 @@ export const update = async (
       data: report,
     });
   } catch (error) {
-    res.status(400).json({
+    res.status(500).json({
       success: false,
-      message:
-        error instanceof Error
-          ? error.message
-          : "Failed to update report",
+      message: "Failed to update report",
     });
   }
 };
