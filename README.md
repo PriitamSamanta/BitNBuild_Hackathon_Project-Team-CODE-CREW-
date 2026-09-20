@@ -9,7 +9,7 @@
 
 **Res-Q** is an AI-powered emergency response and resource coordination platform designed to help citizens and emergency authorities detect, understand, and respond to emergencies faster.
 
-During major incidents such as **fires, floods, road accidents, medical emergencies, chemical leaks, and natural disasters**, critical information can arrive from disconnected sources including citizens, emergency calls, IoT sensors, field teams, hospitals, and government departments. This fragmented information can delay decision-making and resource deployment.
+During major incidents such as **fires, floods, road accidents, medical emergencies, chemical leaks, and natural disasters**, critical information can arrive from disconnected sources including citizens, emergency calls, field teams, hospitals, and government departments. This fragmented information can delay decision-making and resource deployment.
 
 Res-Q creates a **unified intelligent emergency ecosystem** that converts these scattered reports into actionable response decisions.
 
@@ -51,7 +51,7 @@ Its AI-driven pipeline transforms fragmented information into coordinated action
 - 🎯 AI intensity and severity scoring
 - 🔗 Duplicate and related incident detection
 - 🎙️ Voice-based emergency reporting
-- 📍 Automatic current-location detection
+- 📍 Get current-location detection
 - 📷 Photo/image-based reporting
 - 🧠 Explainable AI confidence scoring
 - ⚡ AI-generated emergency action plans
