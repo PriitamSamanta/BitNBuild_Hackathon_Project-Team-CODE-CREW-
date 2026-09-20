@@ -1,16 +1,18 @@
+import api from "@/lib/api";
 import type {
   Incident,
   IncidentType,
   Severity,
+  RecommendedResource,
   Resource,
   ResourceType,
-  RecommendedResource,
   Team,
   Hospital,
-} from '@/types';
-import { INCIDENT_TYPE_META } from '@/types';
+} from "@/types";
 
-const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));
+/* =========================================================
+   AI TYPES
+========================================================= */
 
 export interface AIAnalysisResult {
   type: IncidentType;
@@ -18,301 +20,811 @@ export interface AIAnalysisResult {
   score: number;
   confidence: number;
   peopleAffected: number;
+  peopleTrapped: number;
+  medicalAssistance: boolean;
+  title: string;
+  summary: string;
   riskFactors: string[];
+  recommendedAction: string;
   recommendedResources: RecommendedResource[];
   duplicateReports: number;
 }
 
-const KEYWORDS: Record<IncidentType, string[]> = {
-  fire: ['fire', 'smoke', 'flames', 'burning', 'blaze', 'warehouse', 'industrial'],
-  accident: ['accident', 'crash', 'collision', 'vehicle', 'car', 'truck', 'highway'],
-  flood: ['flood', 'water', 'rising', 'river', 'overflow', 'rain', 'submerge'],
-  medical: ['medical', 'cardiac', 'heart', 'injury', 'unconscious', 'bleeding', 'patient', 'stroke'],
-  chemical: ['chemical', 'spill', 'gas', 'toxic', 'hazard', 'leak', 'fume'],
-  infrastructure: ['collapse', 'building', 'bridge', 'road', 'crack', 'structure', 'infrastructure'],
-};
-
-export function classifyIncident(description: string): IncidentType {
-  const lower = description.toLowerCase();
-  let bestType: IncidentType = 'fire';
-  let bestScore = 0;
-  (Object.keys(KEYWORDS) as IncidentType[]).forEach((type) => {
-    const score = KEYWORDS[type].reduce(
-      (acc, kw) => acc + (lower.includes(kw) ? 1 : 0),
-      0,
-    );
-    if (score > bestScore) {
-      bestScore = score;
-      bestType = type;
-    }
-  });
-  return bestType;
+interface BackendAIAnalysis {
+  type: IncidentType;
+  severity: Severity;
+  priority: number;
+  title: string;
+  summary: string;
+  peopleAffected: number;
+  peopleTrapped: number;
+  medicalAssistance: boolean;
+  recommendedAction: string;
 }
 
+interface BackendAIResponse {
+  success: boolean;
+  message: string;
+  data: BackendAIAnalysis;
+}
+
+/* =========================================================
+   REAL BACKEND GEMINI ANALYSIS
+========================================================= */
+
+/**
+ * Real Gemini-powered emergency analysis.
+ *
+ * Backend:
+ * POST /api/ai/analyze
+ *
+ * Keep the optional arguments for compatibility with the
+ * old CreateIncidentModal call.
+ */
+export async function analyzeIncident(
+  description: string,
+  _peopleAffected?: number,
+  _source?: string,
+  _existingIncidents?: Incident[],
+  _resources?: Resource[],
+  _coordinates?: {
+    lat: number;
+    lng: number;
+  },
+): Promise<AIAnalysisResult> {
+  if (!description.trim()) {
+    throw new Error(
+      "Emergency description is required.",
+    );
+  }
+
+  const response =
+    await api.post<BackendAIResponse>(
+      "/api/ai/analyze",
+      {
+        description: description.trim(),
+      },
+    );
+
+  const analysis = response.data.data;
+
+  if (!analysis) {
+    throw new Error(
+      "AI returned an empty analysis.",
+    );
+  }
+
+  return {
+    type: analysis.type,
+    severity: analysis.severity,
+
+    // Backend priority: 1-5
+    // Existing frontend score: 0-100
+    score: Math.min(
+      100,
+      Math.max(
+        0,
+        analysis.priority * 20,
+      ),
+    ),
+
+    confidence: 100,
+
+    peopleAffected:
+      analysis.peopleAffected ?? 0,
+
+    peopleTrapped:
+      analysis.peopleTrapped ?? 0,
+
+    medicalAssistance:
+      analysis.medicalAssistance ?? false,
+
+    title:
+      analysis.title ||
+      "Emergency Incident",
+
+    summary:
+      analysis.summary ||
+      "Emergency analysis completed.",
+
+    riskFactors: [],
+
+    recommendedAction:
+      analysis.recommendedAction ||
+      "Assess the situation and dispatch appropriate emergency resources.",
+
+    recommendedResources: [],
+
+    duplicateReports: 0,
+  };
+}
+
+/* =========================================================
+   TEAM RECOMMENDATIONS
+========================================================= */
+
+export async function getAIRecommendations(
+  incidentMongoId: string,
+) {
+  if (!incidentMongoId) {
+    throw new Error(
+      "Incident ID is required.",
+    );
+  }
+
+  const response = await api.get(
+    `/api/incidents/${incidentMongoId}/recommendations`,
+  );
+
+  return response.data.data;
+}
+
+/* =========================================================
+   SUMMARY
+========================================================= */
+
+/**
+ * Existing AIAssistant components call this function.
+ *
+ * It remains async because the real backend Gemini
+ * endpoint is being used.
+ */
+export function generateSummary(
+  incidents: Incident[],
+  teams?: Team[],
+  resources?: Resource[],
+): string {
+  if (!incidents.length) {
+    return "No active incidents are currently available.";
+  }
+
+  const highestPriority =
+    [...incidents].sort(
+      (a, b) =>
+        getIncidentPriority(b) -
+        getIncidentPriority(a),
+    )[0];
+
+  const availableTeams =
+    teams?.filter(
+      (team) =>
+        team.status === "available",
+    ).length ?? 0;
+
+  const availableResources =
+    resources?.filter(
+      (resource) =>
+        resource.status === "available",
+    ).length ?? 0;
+
+  return (
+    `Highest priority incident: ${highestPriority.title}\n\n` +
+    `Type: ${highestPriority.type}\n` +
+    `Severity: ${highestPriority.severity.toUpperCase()}\n` +
+    `Priority: ${getIncidentPriority(highestPriority)}/5\n` +
+    `People affected: ${highestPriority.peopleAffected}\n` +
+    `Available response teams: ${availableTeams}\n` +
+    `Available resources: ${availableResources}\n\n` +
+    `Response teams should prioritize the highest-severity incident and maintain continuous monitoring.`
+  );
+}
+
+/* =========================================================
+   INCIDENT HELPERS
+========================================================= */
+
+/**
+ * The backend Incident model has priority, while the
+ * existing frontend Incident interface may not.
+ *
+ * This helper safely reads it without breaking the
+ * existing frontend model.
+ */
+function getIncidentPriority(
+  incident: Incident,
+): number {
+  const value = (
+    incident as Incident & {
+      priority?: number;
+    }
+  ).priority;
+
+  if (
+    typeof value === "number"
+  ) {
+    return value;
+  }
+
+  /*
+   * Fallback based on severity.
+   */
+  switch (incident.severity) {
+    case "critical":
+      return 5;
+
+    case "high":
+      return 4;
+
+    case "medium":
+      return 3;
+
+    case "low":
+      return 1;
+
+    default:
+      return 1;
+  }
+}
+
+function getPeopleTrapped(
+  incident: Incident,
+): number {
+  return (
+    (
+      incident as Incident & {
+        peopleTrapped?: number;
+      }
+    ).peopleTrapped ?? 0
+  );
+}
+
+function needsMedicalAssistance(
+  incident: Incident,
+): boolean {
+  return (
+    (
+      incident as Incident & {
+        medicalAssistance?: boolean;
+      }
+    ).medicalAssistance ?? false
+  );
+}
+
+/* =========================================================
+   ACTION PLAN
+========================================================= */
+
+export interface ActionPlanStep {
+  step: number;
+  emoji: string;
+  action: string;
+}
+
+export interface AIActionPlan {
+  immediateActions: {
+    step: number;
+    emoji: string;
+    action: string;
+  }[];
+
+  escalation: boolean;
+}
+
+export function generateActionPlan(
+  incident: Incident,
+): AIActionPlan {
+  const actions: AIActionPlan['immediateActions'] = [];
+
+  const severity =
+    incident.severity;
+
+  const type =
+    incident.type;
+
+  let step = 1;
+
+  /*
+   * Immediate safety action
+   */
+  actions.push({
+    step: step++,
+    emoji: '🚨',
+    action:
+      'Verify the incident location and establish a safe response perimeter.',
+  });
+
+  /*
+   * Severity-based response
+   */
+  if (
+    severity === 'critical' ||
+    severity === 'high'
+  ) {
+    actions.push({
+      step: step++,
+      emoji: '⚠️',
+      action:
+        'Activate priority emergency response and coordinate available response teams.',
+    });
+  } else {
+    actions.push({
+      step: step++,
+      emoji: '📋',
+      action:
+        'Verify incident information and assign the appropriate response resources.',
+    });
+  }
+
+  /*
+   * Incident-specific actions
+   */
+  switch (type) {
+    case 'fire':
+      actions.push({
+        step: step++,
+        emoji: '🔥',
+        action:
+          'Dispatch fire and rescue personnel and assess evacuation requirements.',
+      });
+      break;
+
+    case 'flood':
+      actions.push({
+        step: step++,
+        emoji: '🌊',
+        action:
+          'Assess affected areas, identify trapped people, and coordinate rescue resources.',
+      });
+      break;
+
+    case 'accident':
+    case 'road':
+      actions.push({
+        step: step++,
+        emoji: '🚑',
+        action:
+          'Secure the accident area and coordinate medical and traffic response.',
+      });
+      break;
+
+    case 'medical':
+      actions.push({
+        step: step++,
+        emoji: '🏥',
+        action:
+          'Prioritize medical assistance and coordinate emergency medical resources.',
+      });
+      break;
+
+    case 'chemical':
+      actions.push({
+        step: step++,
+        emoji: '☣️',
+        action:
+          'Restrict access to the affected area and request specialized hazardous-material response.',
+      });
+      break;
+
+    case 'structural':
+    case 'infrastructure':
+      actions.push({
+        step: step++,
+        emoji: '🏗️',
+        action:
+          'Secure the structure and assess risks before allowing responders to enter.',
+      });
+      break;
+
+    default:
+      actions.push({
+        step: step++,
+        emoji: '🛡️',
+        action:
+          'Assess hazards and coordinate the appropriate emergency response team.',
+      });
+      break;
+  }
+
+  /*
+   * General monitoring
+   */
+  actions.push({
+    step: step++,
+    emoji: '📡',
+    action:
+      'Monitor incident status and update the response plan as new information arrives.',
+  });
+
+  return {
+    immediateActions: actions,
+    escalation:
+      severity === 'critical',
+  };
+}
+
+export function detectEscalation(
+  incident: Incident,
+): {
+  shouldEscalate: boolean;
+  delayMinutes: number;
+} {
+  const shouldEscalate =
+    incident.severity === "critical" ||
+    getIncidentPriority(incident) >= 4 ||
+    getPeopleTrapped(incident) > 0 ||
+    (
+      needsMedicalAssistance(incident) &&
+      incident.peopleAffected >= 5
+    );
+
+  return {
+    shouldEscalate,
+    delayMinutes: shouldEscalate ? 10 : 0,
+  };
+}
+
+/* =========================================================
+   HOSPITAL ALLOCATION
+========================================================= */
+
+export interface HospitalAllocation {
+  hospital: Hospital;
+  patients: number;
+}
+
+/**
+ * Preserve the old HospitalAllocation shape expected
+ * by Hospitals.tsx.
+ */
+export function allocateHospitals(
+  peopleAffected: number,
+  hospitals: Hospital[],
+): HospitalAllocation[] {
+  if (
+    peopleAffected <= 0 ||
+    hospitals.length === 0
+  ) {
+    return [];
+  }
+
+  const availableHospitals =
+    hospitals.filter(
+      (hospital) =>
+        hospital.status ===
+        "available",
+    );
+
+  if (
+    availableHospitals.length === 0
+  ) {
+    return [];
+  }
+
+  const allocations:
+    HospitalAllocation[] = [];
+
+  let remaining =
+    peopleAffected;
+
+  for (
+    let i = 0;
+    i <
+    availableHospitals.length &&
+    remaining > 0;
+    i++
+  ) {
+    const hospital =
+      availableHospitals[i];
+
+    const remainingHospitals =
+      availableHospitals.length -
+      i;
+
+    const patients =
+      Math.ceil(
+        remaining /
+        remainingHospitals,
+      );
+
+    allocations.push({
+      hospital,
+      patients,
+    });
+
+    remaining -= patients;
+  }
+
+  return allocations;
+}
+
+/* =========================================================
+   BACKWARD-COMPATIBILITY HELPERS
+========================================================= */
+
+/**
+ * These functions are intentionally kept because some
+ * older parts of the UI may still import them.
+ *
+ * They are no longer responsible for the main Gemini
+ * analysis path.
+ */
+
+export function classifyIncident(
+  description: string,
+): IncidentType {
+  const text =
+    description.toLowerCase();
+
+  if (
+    text.includes("fire") ||
+    text.includes("flame") ||
+    text.includes("smoke")
+  ) {
+    return "fire";
+  }
+
+  if (
+    text.includes("flood") ||
+    text.includes("water")
+  ) {
+    return "flood";
+  }
+
+  if (
+    text.includes("accident") ||
+    text.includes("collision") ||
+    text.includes("crash")
+  ) {
+    return "accident";
+  }
+
+  if (
+    text.includes("medical") ||
+    text.includes("injury") ||
+    text.includes("unconscious")
+  ) {
+    return "medical";
+  }
+
+  if (
+    text.includes("chemical") ||
+    text.includes("gas") ||
+    text.includes("toxic")
+  ) {
+    return "chemical";
+  }
+
+  if (
+    text.includes("road") ||
+    text.includes("traffic")
+  ) {
+    return "road";
+  }
+
+  if (
+    text.includes("building") ||
+    text.includes("collapse") ||
+    text.includes("structure")
+  ) {
+    return "structural";
+  }
+
+  return "other";
+}
+
+/**
+ * Compatibility wrapper.
+ */
 export function calculateIntensity(
   type: IncidentType,
   peopleAffected: number,
   description: string,
-  duplicateReports: number,
-): { severity: Severity; score: number } {
-  const lower = description.toLowerCase();
-  let score = 30;
+  priority = 1,
+): {
+  severity: Severity;
+  score: number;
+} {
+  const text =
+    description.toLowerCase();
 
-  score += Math.min(peopleAffected * 3, 35);
-  if (lower.match(/spreading|rapid|large|massive|huge|major/)) score += 15;
-  if (lower.match(/trapped|stuck|inside/)) score += 10;
-  if (lower.match(/industrial|warehouse|factory|chemical|gas/)) score += 10;
-  if (lower.match(/highway|traffic|multi/)) score += 8;
-  if (lower.match(/cardiac|stroke|critical|unconscious/)) score += 12;
-  if (lower.match(/collapse|structural/)) score += 8;
-  score += Math.min(duplicateReports * 3, 12);
+  let score =
+    priority * 20;
 
-  score = Math.min(Math.max(score, 5), 100);
-
-  let severity: Severity = 'low';
-  if (score > 75) severity = 'critical';
-  else if (score > 50) severity = 'high';
-  else if (score > 25) severity = 'medium';
-
-  return { severity, score };
-}
-
-export function calculateConfidence(
-  type: IncidentType,
-  peopleAffected: number,
-  duplicateReports: number,
-  source: string,
-): number {
-  let conf = 70;
-  if (duplicateReports > 1) conf += duplicateReports * 5;
-  if (source === 'iot') conf += 10;
-  if (source === 'field') conf += 8;
-  if (source === 'call') conf += 5;
-  if (peopleAffected > 0) conf += 5;
-  if (peopleAffected > 10) conf += 5;
-  return Math.min(conf, 98);
-}
-
-export function detectDuplicates(
-  newDesc: string,
-  existingIncidents: Incident[],
-): { isDuplicate: boolean; matchId?: string; count: number } {
-  const lower = newDesc.toLowerCase();
-  for (const inc of existingIncidents) {
-    if (inc.status === 'resolved') continue;
-    const words = inc.description.toLowerCase().split(/\s+/);
-    const overlap = words.filter((w) => w.length > 4 && lower.includes(w)).length;
-    if (overlap >= 3) {
-      return { isDuplicate: true, matchId: inc.id, count: inc.duplicateReports + 1 };
-    }
+  if (
+    peopleAffected >= 10
+  ) {
+    score += 20;
+  } else if (
+    peopleAffected >= 5
+  ) {
+    score += 10;
   }
-  return { isDuplicate: false, count: 1 };
+
+  if (
+    text.includes("trapped") ||
+    text.includes("critical") ||
+    text.includes("major")
+  ) {
+    score += 20;
+  }
+
+  score = Math.min(
+    100,
+    score,
+  );
+
+  let severity: Severity =
+    "low";
+
+  if (score >= 80) {
+    severity = "critical";
+  } else if (score >= 60) {
+    severity = "high";
+  } else if (score >= 35) {
+    severity = "medium";
+  }
+
+  return {
+    severity,
+    score,
+  };
 }
 
+/**
+ * Compatibility confidence calculation.
+ */
+export function calculateConfidence(
+  _type: IncidentType,
+  _peopleAffected: number,
+  _priority: number,
+  _source: string,
+): number {
+  return 100;
+}
+
+/**
+ * Compatibility duplicate detector.
+ */
+export function detectDuplicates(
+  description: string,
+  existingIncidents: Incident[],
+): {
+  count: number;
+  incidents: Incident[];
+} {
+  const text =
+    description
+      .toLowerCase()
+      .trim();
+
+  const words =
+    text
+      .split(/\s+/)
+      .filter(
+        (word) =>
+          word.length > 4,
+      );
+
+  const matches =
+    existingIncidents.filter(
+      (incident) => {
+        const incidentText =
+          `${incident.title} ${incident.description}`
+            .toLowerCase();
+
+        const matchingWords =
+          words.filter(
+            (word) =>
+              incidentText.includes(
+                word,
+              ),
+          );
+
+        return (
+          matchingWords.length >=
+          Math.min(2, words.length)
+        );
+      },
+    );
+
+  return {
+    count: matches.length,
+    incidents: matches,
+  };
+}
+
+/**
+ * Compatibility risk-factor generator.
+ */
 export function generateRiskFactors(
   type: IncidentType,
   peopleAffected: number,
   description: string,
-  duplicateReports: number,
+  duplicateCount: number,
   source: string,
 ): string[] {
-  const factors: string[] = [];
-  const lower = description.toLowerCase();
+  const risks: string[] = [];
 
-  if (peopleAffected > 0) factors.push(`${peopleAffected} people potentially affected`);
-  if (lower.match(/spreading|rapid/)) factors.push('Fire spreading');
-  if (lower.match(/industrial|warehouse|factory/)) factors.push('Industrial area');
-  if (duplicateReports > 1) factors.push(`${duplicateReports} reports detected`);
-  if (source === 'iot') factors.push('Sensor confirmation');
-  if (source === 'field') factors.push('Field team confirmation');
-  if (lower.match(/trapped|stuck/)) factors.push('People trapped');
-  if (lower.match(/highway|traffic/)) factors.push('Highway location');
-  if (lower.match(/chemical|toxic|gas/)) factors.push('Hazardous material');
-  if (lower.match(/cardiac|stroke|critical/)) factors.push('Life-threatening condition');
-  if (lower.match(/collapse/)) factors.push('Structural risk');
-  if (lower.match(/rising|flood|overflow/)) factors.push('Water level rising');
-  if (factors.length === 0) factors.push('Initial assessment');
+  const text =
+    description.toLowerCase();
 
-  return factors;
+  if (
+    peopleAffected >= 10
+  ) {
+    risks.push(
+      "Large number of people affected",
+    );
+  }
+
+  if (
+    text.includes("trapped")
+  ) {
+    risks.push(
+      "People may be trapped",
+    );
+  }
+
+  if (
+    type === "fire"
+  ) {
+    risks.push(
+      "Potential fire spread",
+    );
+  }
+
+  if (
+    type === "chemical"
+  ) {
+    risks.push(
+      "Potential hazardous-material exposure",
+    );
+  }
+
+  if (
+    type === "flood"
+  ) {
+    risks.push(
+      "Potential water-related access hazards",
+    );
+  }
+
+  if (
+    duplicateCount > 0
+  ) {
+    risks.push(
+      "Possible duplicate emergency reports",
+    );
+  }
+
+  if (
+    source === "sensor" ||
+    source === "iot"
+  ) {
+    risks.push(
+      "Incident originated from an automated source",
+    );
+  }
+
+  return risks;
 }
 
+/**
+ * Compatibility resource recommendation.
+ */
 export function recommendResources(
-  type: IncidentType,
-  score: number,
+  _type: IncidentType,
+  _score: number,
   availableResources: Resource[],
-  incidentCoords: { lat: number; lng: number },
+  _coordinates?: {
+    lat: number;
+    lng: number;
+  },
 ): RecommendedResource[] {
-  const needs: Record<IncidentType, ResourceType[]> = {
-    fire: ['fire-tender', 'ambulance', 'rescue-team'],
-    accident: ['ambulance', 'rescue-team'],
-    flood: ['rescue-boat', 'rescue-team', 'ambulance'],
-    medical: ['ambulance', 'medical-kit'],
-    chemical: ['fire-tender', 'ambulance', 'rescue-team'],
-    infrastructure: ['rescue-team', 'ambulance'],
-  };
-
-  const requiredTypes = needs[type];
-  const count = score > 75 ? 3 : score > 50 ? 2 : 1;
-  const recommendations: RecommendedResource[] = [];
-
-  requiredTypes.slice(0, count).forEach((rType, idx) => {
-    const candidates = availableResources
-      .filter((r) => r.type === rType && r.status === 'available')
-      .map((r) => ({
-        resource: r,
-        distance: haversine(
-          incidentCoords.lat,
-          incidentCoords.lng,
-          r.coordinates.lat,
-          r.coordinates.lng,
-        ),
-      }))
-      .sort((a, b) => a.distance - b.distance);
-
-    if (candidates.length > 0) {
-      const best = candidates[0];
-      recommendations.push({
-        resourceId: best.resource.id,
-        distance: parseFloat(best.distance.toFixed(1)),
-        eta: Math.max(2, Math.round(best.distance * 1.5)),
-        aiRecommended: idx === 0,
-      });
-    }
-  });
-
-  return recommendations;
-}
-
-function haversine(lat1: number, lng1: number, lat2: number, lng2: number): number {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a =
-    Math.sin(dLat / 2) ** 2 +
-    Math.cos((lat1 * Math.PI) / 180) *
-      Math.cos((lat2 * Math.PI) / 180) *
-      Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
-
-export interface ActionPlan {
-  immediateActions: { step: number; emoji: string; action: string }[];
-  escalation: string;
-}
-
-export function generateActionPlan(incident: Incident): ActionPlan {
-  const actions: { step: number; emoji: string; action: string }[] = [];
-  const typeMeta = INCIDENT_TYPE_META[incident.type];
-
-  let step = 1;
-  if (incident.type === 'fire' || incident.type === 'chemical') {
-    actions.push({ step: step++, emoji: '🚒', action: `Dispatch ${incident.score > 75 ? 2 : 1} Fire Tender(s)` });
-  }
-  if (incident.peopleAffected > 0 || incident.score > 50) {
-    actions.push({ step: step++, emoji: '🚑', action: `Dispatch ${incident.score > 75 ? 2 : 1} Ambulance(s)` });
-  }
-  actions.push({ step: step++, emoji: '👨‍🚒', action: 'Deploy Rescue Team' });
-  if (incident.type === 'accident' || incident.type === 'fire') {
-    actions.push({ step: step++, emoji: '👮', action: 'Activate Traffic Control' });
-  }
-  actions.push({ step: step++, emoji: '🏥', action: 'Notify Nearby Hospital' });
-  if (incident.score > 80) {
-    actions.push({ step: step++, emoji: '🚨', action: 'Consider Zone Evacuation' });
-  }
-  if (incident.type === 'chemical') {
-    actions.push({ step: step++, emoji: '☣', action: 'Activate Hazmat Protocol' });
-  }
-  if (incident.type === 'flood') {
-    actions.push({ step: step++, emoji: '🚤', action: 'Deploy Rescue Boats' });
-  }
-
-  return {
-    immediateActions: actions,
-    escalation: `If no team arrives within ${incident.score > 75 ? 8 : 12} minutes:\n→ Notify supervisor\n→ Recommend backup team`,
-  };
-}
-
-export function generateSummary(incidents: Incident[], teams: Team[], resources: Resource[]): string {
-  const active = incidents.filter((i) => i.status !== 'resolved');
-  const critical = active.filter((i) => i.severity === 'critical');
-  const topPriority = active.sort((a, b) => b.score - a.score)[0];
-  const activeTeams = teams.filter((t) => t.status === 'en-route' || t.status === 'on-scene');
-  const delayed = teams.filter((t) => t.status === 'en-route' && (t.eta ?? 0) > 8);
-
-  let summary = `There are currently ${active.length} active incidents.\n\n`;
-  if (critical.length > 0) {
-    summary += `${critical.length} of these are critical.\n\n`;
-  }
-  if (topPriority) {
-    summary += `The highest priority is Incident #${topPriority.id},\n`;
-    summary += `a ${INCIDENT_TYPE_META[topPriority.type].label.toLowerCase()} at ${topPriority.location}.\n\n`;
-    summary += `Severity:\n${topPriority.score}/100\n\n`;
-  }
-  summary += `${activeTeams.length} teams are currently responding.\n\n`;
-  if (delayed.length > 0) {
-    summary += `${delayed.length} response team${delayed.length > 1 ? 's are' : ' is'} delayed.\n`;
-  }
-  return summary;
-}
-
-export function detectEscalation(incident: Incident): { shouldEscalate: boolean; delayMinutes: number; level: number } {
-  if (incident.status === 'resolved' || !incident.expectedArrival) {
-    return { shouldEscalate: false, delayMinutes: 0, level: 0 };
-  }
-  const [expM, expS] = incident.expectedArrival.split(':').map(Number);
-  const expectedSec = expM * 60 + expS;
-  const elapsedMin = Math.floor((Date.now() - new Date(incident.createdAt).getTime()) / 60000);
-  const delayMin = Math.max(0, elapsedMin - Math.floor(expectedSec / 60));
-
-  if (delayMin > 3) {
-    const level = delayMin > 8 ? 3 : delayMin > 5 ? 2 : 1;
-    return { shouldEscalate: true, delayMinutes: delayMin, level };
-  }
-  return { shouldEscalate: false, delayMinutes: 0, level: 0 };
-}
-
-export function allocateHospitals(
-  patients: number,
-  hospitals: Hospital[],
-): { hospital: Hospital; patients: number }[] {
-  const available = hospitals.filter((h) => h.status !== 'full' && h.emergencyBeds > 0);
-  const sorted = [...available].sort((a, b) => b.emergencyBeds - a.emergencyBeds);
-  const allocation: { hospital: Hospital; patients: number }[] = [];
-  let remaining = patients;
-
-  for (const h of sorted) {
-    if (remaining <= 0) break;
-    const assigned = Math.min(remaining, Math.ceil(h.emergencyBeds / 2));
-    allocation.push({ hospital: h, patients: assigned });
-    remaining -= assigned;
-  }
-  return allocation;
-}
-
-export async function analyzeIncident(
-  description: string,
-  peopleAffected: number,
-  source: string,
-  existingIncidents: Incident[],
-  availableResources: Resource[],
-  coords?: { lat: number; lng: number },
-): Promise<AIAnalysisResult> {
-  await delay(800 + Math.random() * 700);
-  const type = classifyIncident(description);
-  const { severity, score } = calculateIntensity(type, peopleAffected, description, 1);
-  const confidence = calculateConfidence(type, peopleAffected, 1, source);
-  const dup = detectDuplicates(description, existingIncidents);
-  const riskFactors = generateRiskFactors(type, peopleAffected, description, dup.count, source);
-  const recommended = coords ? recommendResources(type, score, availableResources, coords) : [];
-
-  return {
-    type,
-    severity,
-    score,
-    confidence,
-    peopleAffected,
-    riskFactors,
-    recommendedResources: recommended,
-    duplicateReports: dup.count,
-  };
+  return availableResources
+    .filter(
+      (resource) =>
+        resource.status === "available",
+    )
+    .slice(0, 5)
+    .map((resource) => ({
+      resourceId: resource.id,
+      resourceType:
+        resource.type as ResourceType,
+      quantity: 1,
+      reason:
+        "Available emergency resource.",
+      distance: 0,
+      eta: 0,
+      aiRecommended: true,
+    }));
 }

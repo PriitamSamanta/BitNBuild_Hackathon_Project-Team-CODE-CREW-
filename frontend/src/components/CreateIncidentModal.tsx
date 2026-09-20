@@ -27,7 +27,6 @@ import {
 
 import {
   INCIDENT_TYPE_META,
-  type IncidentSource,
   type IncidentType,
 } from '@/types';
 
@@ -68,19 +67,13 @@ const schema = z.object({
 });
 
 /*
- * Keep this explicit instead of using z.infer<typeof schema>.
+ * Keep the form type aligned with the Zod schema.
  *
- * React Hook Form + z.coerce.number() was causing the resolver
- * input type to become `unknown`. We now use `valueAsNumber`
- * on the input and a normal z.number() schema.
+ * This avoids the resolver mismatch that happened when
+ * the global IncidentSource type contained additional
+ * backend-only values.
  */
-type FormValues = {
-  location: string;
-  description: string;
-  peopleAffected: number;
-  source: IncidentSource;
-  priority: 'normal' | 'high';
-};
+type FormValues = z.infer<typeof schema>;
 
 /* ========================================
    Props
@@ -108,14 +101,19 @@ export function CreateIncidentModal({
     addNotification,
   } = useApp();
 
-  const [type, setType] = useState<IncidentType>('fire');
-  const [analyzing, setAnalyzing] = useState(false);
+  const [type, setType] =
+    useState<IncidentType>('fire');
+
+  const [analyzing, setAnalyzing] =
+    useState(false);
+
   const [result, setResult] =
     useState<AIAnalysisResult | null>(null);
 
-  const [coordinates, setCoordinates] = useState<
-    { lat: number; lng: number } | undefined
-  >();
+  const [coordinates, setCoordinates] =
+    useState<
+      { lat: number; lng: number } | undefined
+    >();
 
   const {
     register,
@@ -189,14 +187,24 @@ export function CreateIncidentModal({
     setResult(null);
 
     try {
-      const coords = await getBrowserCoordinates();
+      const coords =
+        await getBrowserCoordinates();
 
       setCoordinates(coords);
 
-      const availableResources = resources.filter(
-        (resource) => resource.status === 'available',
-      );
+      const availableResources =
+        resources.filter(
+          (resource) =>
+            resource.status === 'available',
+        );
 
+      /*
+       * Keep the existing six-argument call.
+       *
+       * The updated aiService supports these optional
+       * compatibility arguments while using the backend
+       * Gemini API for the actual analysis.
+       */
       const analysis = await analyzeIncident(
         values.description,
         values.peopleAffected,
@@ -235,15 +243,26 @@ export function CreateIncidentModal({
       return;
     }
 
-    const now = new Date().toISOString();
+    const now =
+      new Date().toISOString();
 
     const id = `INC-${crypto
       .randomUUID()
       .slice(0, 8)
       .toUpperCase()}`;
 
+    /*
+     * Use the AI result type instead of the manually
+     * selected frontend type because Gemini may classify
+     * the incident differently.
+     */
+    const incidentMeta =
+      INCIDENT_TYPE_META[result.type];
+
     const title =
-      INCIDENT_TYPE_META[result.type].label;
+      incidentMeta?.label ??
+      result.title ??
+      'Emergency Incident';
 
     const incident = {
       id,
@@ -264,10 +283,22 @@ export function CreateIncidentModal({
 
       source: values.source,
 
-      peopleAffected: values.peopleAffected,
+      peopleAffected:
+        values.peopleAffected,
 
       status: 'verified' as const,
 
+      /*
+       * Keep the correct property name.
+       *
+       * Backend/frontend models use assignedTeams.
+       */
+      assignedTeams: [],
+
+      /*
+       * Keep the legacy property because the current
+       * frontend Incident interface still requires it.
+       */
       assignedTeamss: [],
 
       recommendedResources:
@@ -326,6 +357,11 @@ export function CreateIncidentModal({
       escalationLevel: 0,
     };
 
+    /*
+     * Keep the existing frontend state workflow.
+     * We are NOT replacing this with a backend POST yet,
+     * so existing UI behavior is preserved.
+     */
     addIncident(incident);
 
     addNotification({
@@ -355,13 +391,15 @@ export function CreateIncidentModal({
       open={open}
       onClose={close}
       title="Create Incident"
-      subtitle="Frontend-only workflow — backend endpoint can be connected later"
+      subtitle="AI-powered emergency analysis"
       icon={<Siren size={20} />}
       maxWidth="max-w-xl"
     >
       <form
         onSubmit={handleSubmit(
-          result ? createIncident : onAnalyze,
+          result
+            ? createIncident
+            : onAnalyze,
         )}
         className="space-y-4"
       >
@@ -386,11 +424,10 @@ export function CreateIncidentModal({
                 onClick={() =>
                   setType(incidentType)
                 }
-                className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${
-                  type === incidentType
-                    ? 'border-emergency/50 bg-emergency/10 text-white'
-                    : 'border-navy-border bg-navy-secondary text-secondary hover:text-white'
-                }`}
+                className={`flex items-center gap-1.5 rounded-lg border px-3 py-2 text-xs font-medium transition-all ${type === incidentType
+                  ? 'border-emergency/50 bg-emergency/10 text-white'
+                  : 'border-navy-border bg-navy-secondary text-secondary hover:text-white'
+                  }`}
               >
                 <span>
                   {
@@ -440,14 +477,20 @@ export function CreateIncidentModal({
             <Input
               type="number"
               min={0}
-              {...register('peopleAffected', {
-                valueAsNumber: true,
-              })}
+              {...register(
+                'peopleAffected',
+                {
+                  valueAsNumber: true,
+                },
+              )}
             />
 
             {errors.peopleAffected && (
               <p className="mt-1 text-xs text-emergency">
-                {errors.peopleAffected.message}
+                {
+                  errors.peopleAffected
+                    .message
+                }
               </p>
             )}
           </div>
@@ -470,7 +513,10 @@ export function CreateIncidentModal({
 
           {errors.description && (
             <p className="mt-1 text-xs text-emergency">
-              {errors.description.message}
+              {
+                errors.description
+                  .message
+              }
             </p>
           )}
         </div>
@@ -513,6 +559,12 @@ export function CreateIncidentModal({
                 Government
               </option>
             </select>
+
+            {errors.source && (
+              <p className="mt-1 text-xs text-emergency">
+                {errors.source.message}
+              </p>
+            )}
           </div>
 
           <div>
@@ -532,6 +584,15 @@ export function CreateIncidentModal({
                 High Priority
               </option>
             </select>
+
+            {errors.priority && (
+              <p className="mt-1 text-xs text-emergency">
+                {
+                  errors.priority
+                    .message
+                }
+              </p>
+            )}
           </div>
         </div>
 
@@ -557,8 +618,8 @@ export function CreateIncidentModal({
             </div>
 
             <p className="mt-2 text-xs text-secondary">
-              Running the local classification and
-              validation pipeline.
+              Running AI-powered emergency
+              analysis and validation.
             </p>
           </div>
         )}
@@ -595,12 +656,14 @@ export function CreateIncidentModal({
                   {
                     INCIDENT_TYPE_META[
                       result.type
-                    ].emoji
+                    ]?.emoji
                   }{' '}
+
                   {
                     INCIDENT_TYPE_META[
                       result.type
-                    ].label
+                    ]?.label ??
+                    result.type
                   }
                 </p>
               </div>
@@ -611,7 +674,8 @@ export function CreateIncidentModal({
                 </p>
 
                 <p className="font-semibold uppercase text-white">
-                  {result.severity} — {result.score}/100
+                  {result.severity} —{' '}
+                  {result.score}/100
                 </p>
               </div>
 
@@ -637,6 +701,32 @@ export function CreateIncidentModal({
                 </p>
               </div>
             </div>
+
+            {/* Optional AI summary */}
+            {result.summary && (
+              <div className="mt-3 border-t border-response/20 pt-3">
+                <p className="mb-1 text-xs text-secondary">
+                  AI Summary
+                </p>
+
+                <p className="text-sm text-white">
+                  {result.summary}
+                </p>
+              </div>
+            )}
+
+            {/* Optional recommended action */}
+            {result.recommendedAction && (
+              <div className="mt-3 border-t border-response/20 pt-3">
+                <p className="mb-1 text-xs text-secondary">
+                  Recommended Action
+                </p>
+
+                <p className="text-sm text-white">
+                  {result.recommendedAction}
+                </p>
+              </div>
+            )}
           </div>
         )}
 

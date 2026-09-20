@@ -125,12 +125,12 @@ export function Sidebar({ current, onNavigate, open, onClose }: SidebarProps) {
     <>
       {open && (
         <div
-          className="fixed inset-0 z-40 bg-black/60 lg:hidden"
+          className="fixed inset-0 z-[9990] bg-black/60 lg:hidden"
           onClick={onClose}
         />
       )}
       <aside
-        className={`fixed left-0 top-0 z-50 flex h-full w-[240px] flex-col border-r border-navy-border bg-navy-secondary transition-transform duration-300 lg:static lg:translate-x-0 ${
+        className={`fixed left-0 top-0 z-[9995] flex h-full w-[240px] flex-col border-r border-navy-border bg-navy-secondary transition-transform duration-300 lg:static lg:translate-x-0 ${
           open ? 'translate-x-0' : '-translate-x-full'
         }`}
       >
