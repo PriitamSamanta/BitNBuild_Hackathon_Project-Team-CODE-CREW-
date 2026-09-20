@@ -1,4 +1,4 @@
-'use client'; 
+'use client';
 
 import { useState } from 'react';
 import {
@@ -117,7 +117,17 @@ export function IncidentDetail({ incident, onBack, onOpenIncident }: IncidentDet
             <SeverityBadge severity={incident.severity} size="md" />
           </div>
           <p className="text-sm text-secondary mt-0.5">
-            {typeMeta.emoji} {incident.title} · {sourceMeta.emoji} {sourceMeta.label}
+            {typeMeta.emoji} {incident.title} ·{' '}
+            <span
+              className="inline-flex items-center gap-1"
+              style={{ color: sourceMeta.color }}
+            >
+              <span
+                className="h-1.5 w-1.5 rounded-full"
+                style={{ backgroundColor: sourceMeta.color }}
+              />
+              {sourceMeta.label}
+            </span>
           </p>
         </div>
         <div className="text-right">
@@ -201,6 +211,12 @@ export function IncidentDetail({ incident, onBack, onOpenIncident }: IncidentDet
                     <div key={teamId} className="flex items-center gap-3 rounded-lg border border-navy-border bg-navy-secondary/40 p-2.5">
                       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-navy-card text-sm">
                         {team?.type === 'fire' ? '🚒' : team?.type === 'medical' ? '🚑' : '👨‍🚒'}
+
+                        {resource?.type === 'fire'
+                          ? '🚒'
+                          : resource?.type === 'medical'
+                            ? '🚑'
+                            : '👨‍🚒'}
                       </div>
                       <div className="flex-1 min-w-0">
                         <p className="text-xs font-semibold text-white truncate">{team?.name || teamId}</p>
@@ -296,9 +312,8 @@ export function IncidentDetail({ incident, onBack, onOpenIncident }: IncidentDet
                 {escalationLevels.map((level, i) => (
                   <div key={i} className="flex items-center gap-2 text-xs">
                     <span
-                      className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${
-                        i < incident.escalationLevel! ? 'bg-warning text-white' : 'bg-navy-secondary text-muted'
-                      }`}
+                      className={`flex h-5 w-5 items-center justify-center rounded-full text-[10px] font-bold ${i < incident.escalationLevel! ? 'bg-warning text-white' : 'bg-navy-secondary text-muted'
+                        }`}
                     >
                       {i + 1}
                     </span>

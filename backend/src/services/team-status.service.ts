@@ -17,8 +17,7 @@ export const updateTeamStatus = async (
     throw new Error("Invalid team status");
   }
 
-  const team = await Team.findById(teamId);
-
+  const team = await Team.findOne({ teamId });
   if (!team) {
     throw new Error("Team not found");
   }
