@@ -3,6 +3,7 @@ import Incident from "../models/Incident.js";
 import { analyzeEmergencyReport } from "./ai.service.js";
 import { findDuplicateIncidents } from "./duplicate-detection.service.js";
 import { emitSocketEvent } from "../config/socket.js";
+import { createCriticalIncidentAlert } from "./alert-engine.service.js";
 
 interface CreateReportData {
   description: string;
@@ -173,6 +174,10 @@ export const createReport = async (data: CreateReportData) => {
   };
 
   const incident = await Incident.create(incidentData);
+
+  await createCriticalIncidentAlert(
+    incident._id.toString()
+  );
 
   // ----------------------------------------
   // 6. Link Report → Incident

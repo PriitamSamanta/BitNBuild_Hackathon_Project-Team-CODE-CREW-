@@ -34,7 +34,7 @@ export const dispatchTeams = async (
     }
 
     // Assign teams to incident
-    incident.assignedTeamss = teams.map(
+    incident.assignedTeams = teams.map(
         (team) => team._id
     );
 
@@ -61,7 +61,7 @@ export const dispatchTeams = async (
 
     const updatedIncident = await Incident.findById(
         incident._id
-    ).populate("assignedTeamss");
+    ).populate("assignedTeams");
 
     emitSocketEvent("incident:dispatched", {
         incidentId: incident.incidentId,

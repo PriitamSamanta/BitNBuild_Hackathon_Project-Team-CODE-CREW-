@@ -62,12 +62,12 @@ export const updateIncidentStatus = async (
     }
 
     const updatedIncident = await Incident.findById(incident._id).populate(
-        "assignedTeamss"
+        "assignedTeams"
     );
 
     const releasedTeams = await Team.find({
         _id: {
-            $in: incident.assignedTeamss ?? [],
+            $in: incident.assignedTeams ?? [],
         },
     });
 
@@ -76,7 +76,7 @@ export const updateIncidentStatus = async (
         incidentMongoId: incident._id.toString(),
         previousStatus,
         status,
-        assignedTeamss: incident.assignedTeamss?.map((teamId) =>
+        assignedTeams: incident.assignedTeams?.map((teamId) =>
             teamId.toString()
         ) ?? [],
     });

@@ -7,6 +7,8 @@ import type {
   IncidentSource,
 } from "../models/Incident.js";
 
+import { createCriticalIncidentAlert } from "./alert-engine.service.js";
+
 interface CreateIncidentData {
   type: IncidentType;
   title: string;
@@ -30,11 +32,16 @@ export const createIncident = async (data: CreateIncidentData) => {
 
   const incidentId = `INC-${String(incidentCount + 1).padStart(4, "0")}`;
 
-  return Incident.create({
+  const incident = await Incident.create({
     ...data,
     incidentId,
   });
+
+  await createCriticalIncidentAlert(incident._id.toString());
+
+  return incident;
 };
+
 
 export const getIncidents = async () => {
   return Incident.find()

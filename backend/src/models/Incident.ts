@@ -55,7 +55,7 @@ export interface IIncident {
 
   source: IncidentSource;
 
-  assignedTeamss?: mongoose.Types.ObjectId[];
+  assignedTeams?: mongoose.Types.ObjectId[];
 
   createdAt?: Date;
   updatedAt?: Date;
@@ -167,7 +167,7 @@ const incidentSchema = new Schema<IIncident>(
       required: true,
     },
 
-    assignedTeamss: [
+    assignedTeams: [
       {
         type: Schema.Types.ObjectId,
         ref: "Team",
