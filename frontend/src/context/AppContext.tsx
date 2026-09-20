@@ -26,6 +26,7 @@ import type {
 } from '@/types';
 
 import api from '@/lib/api';
+import { useSocket } from '@/hooks/useSocket';
 import { getIncidents } from '@/services/incidentService';
 import {
   getTeams,
@@ -40,6 +41,8 @@ import type {
   ApiTeam,
   ApiTeamStatus,
 } from '@/types/api';
+
+
 
 type AppState = {
   userRole: UserRole;
@@ -849,6 +852,10 @@ export function AppProvider({
     [updateState],
   );
 
+  useSocket((notification) => {
+    addNotification(notification);
+  });
+
   const dispatchTeam = useCallback(
     async (
       teamId: string,
@@ -860,35 +867,35 @@ export function AppProvider({
         teams: s.teams.map((t) =>
           t.id === teamId
             ? {
-                ...t,
-                status: 'en-route' as const,
-                assignedIncident: incidentId,
-                destination: s.incidents.find((i) => i.id === incidentId)?.location,
-                eta: t.eta ?? 6,
-              }
+              ...t,
+              status: 'en-route' as const,
+              assignedIncident: incidentId,
+              destination: s.incidents.find((i) => i.id === incidentId)?.location,
+              eta: t.eta ?? 6,
+            }
             : t,
         ),
         incidents: s.incidents.map((i) =>
           i.id === incidentId
             ? {
-                ...i,
-                assignedTeamss: i.assignedTeamss.includes(teamId)
-                  ? i.assignedTeamss
-                  : [...i.assignedTeamss, teamId],
-                status: 'responding' as const,
-                updatedAt: new Date().toISOString(),
-                timeline: [
-                  ...i.timeline,
-                  {
-                    time: new Date().toLocaleTimeString('en-IN', {
-                      hour: '2-digit',
-                      minute: '2-digit',
-                    }),
-                    event: `Team ${teamId} dispatched (En Route)`,
-                    icon: '🚒',
-                  },
-                ],
-              }
+              ...i,
+              assignedTeamss: i.assignedTeamss.includes(teamId)
+                ? i.assignedTeamss
+                : [...i.assignedTeamss, teamId],
+              status: 'responding' as const,
+              updatedAt: new Date().toISOString(),
+              timeline: [
+                ...i.timeline,
+                {
+                  time: new Date().toLocaleTimeString('en-IN', {
+                    hour: '2-digit',
+                    minute: '2-digit',
+                  }),
+                  event: `Team ${teamId} dispatched (En Route)`,
+                  icon: '🚒',
+                },
+              ],
+            }
             : i,
         ),
       }));

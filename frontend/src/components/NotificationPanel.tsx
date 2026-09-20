@@ -75,7 +75,8 @@ export function NotificationPanel({
             </div>
           ) : (
             notifications.map((n) => {
-              const meta = TYPE_META[n.type];
+              const meta =
+                TYPE_META[n.type] ?? TYPE_META.info;
               return (
                 <button
                   key={n.id}
@@ -89,9 +90,8 @@ export function NotificationPanel({
                       onClose();
                     }
                   }}
-                  className={`flex w-full items-start gap-2.5 border-b border-navy-border/50 px-4 py-3 text-left transition-colors hover:bg-navy-secondary/50 ${
-                    !n.read ? 'bg-navy-secondary/30' : ''
-                  }`}
+                  className={`flex w-full items-start gap-2.5 border-b border-navy-border/50 px-4 py-3 text-left transition-colors hover:bg-navy-secondary/50 ${!n.read ? 'bg-navy-secondary/30' : ''
+                    }`}
                 >
                   <span className="text-base shrink-0">{meta.dot}</span>
                   <div className="flex-1 min-w-0">

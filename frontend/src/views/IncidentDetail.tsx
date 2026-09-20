@@ -53,7 +53,9 @@ export function IncidentDetail({ incident, onBack, onOpenIncident }: IncidentDet
   const [planOpen, setPlanOpen] = useState(false);
   const [escalated, setEscalated] = useState(false);
 
-  const typeMeta = INCIDENT_TYPE_META[incident.type];
+  const typeMeta =
+    INCIDENT_TYPE_META[incident.type] ??
+    INCIDENT_TYPE_META.other;
   const statusMeta = STATUS_META[incident.status];
   const sourceMeta = SOURCE_META[incident.source];
   const plan = generateActionPlan(incident);
