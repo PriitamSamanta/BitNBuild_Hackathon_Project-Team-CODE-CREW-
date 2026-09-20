@@ -58,7 +58,11 @@ export function IncidentCard({ incident, onClick, compact }: IncidentCardProps) 
             {timeSince(incident.createdAt)}
           </span>
           <span className="flex items-center gap-1">
-            {sourceMeta.emoji} {sourceMeta.label}
+            <span
+              className="h-1.5 w-1.5 rounded-full"
+              style={{ backgroundColor: sourceMeta.color }}
+            />
+            {sourceMeta.label}
           </span>
           {incident.duplicateReports > 1 && (
             <span className="flex items-center gap-1 text-aipurple">

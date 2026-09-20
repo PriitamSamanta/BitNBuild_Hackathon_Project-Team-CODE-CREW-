@@ -8,19 +8,19 @@ import { NotificationPanel } from '@/components/NotificationPanel';
 import { CreateIncidentModal } from '@/components/CreateIncidentModal';
 import { AIAssistantWidget } from '@/components/AIAssistantWidget';
 
-import { Dashboard } from '@/pages/Dashboard';
-import { Incidents } from '@/pages/Incidents';
-import { IncidentDetail } from '@/pages/IncidentDetail';
-import { LiveMapPage } from '@/pages/LiveMapPage';
-import { Resources } from '@/pages/Resources';
-import { Teams } from '@/pages/Teams';
-import { Hospitals } from '@/pages/Hospitals';
-import { AIAssistantPage } from '@/pages/AIAssistantPage';
-import { Analytics } from '@/pages/Analytics';
-import { RiskHeatmap } from '@/pages/RiskHeatmap';
-import { Alerts } from '@/pages/Alerts';
-import { Settings } from '@/pages/Settings';
-import { NotificationsPage } from '@/pages/NotificationsPage';
+import { Dashboard } from '@/views/Dashboard';
+import { Incidents } from '@/views/Incidents';
+import { IncidentDetail } from '@/views/IncidentDetail';
+import { LiveMapPage } from '@/views/LiveMapPage';
+import { Resources } from '@/views/Resources';
+import { Teams } from '@/views/Teams';
+import { Hospitals } from '@/views/Hospitals';
+import { AIAssistantPage } from '@/views/AIAssistantPage';
+import { Analytics } from '@/views/Analytics';
+import { RiskHeatmap } from '@/views/RiskHeatmap';
+import { Alerts } from '@/views/Alerts';
+import { Settings } from '@/views/Settings';
+import { NotificationsPage } from '@/views/NotificationsPage';
 
 function CommandCenter() {
   const { incidents } = useApp();

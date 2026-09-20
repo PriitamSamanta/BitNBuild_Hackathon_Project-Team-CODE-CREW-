@@ -27,7 +27,13 @@ export type IncidentSource =
 export type IncidentStatus =
   | 'verified'
   | 'responding'
-  | 'resolved';
+  | 'resolved'
+  | 'reported'
+  | 'assigned'
+  | 'en-route'
+  | 'on-scene'
+  | 'rescue-in-progress'
+  | 'closed';
 
 export type ResourceType =
   | 'fire-tender'
@@ -48,10 +54,16 @@ export type TeamStatus =
   | 'available'
   | 'en-route'
   | 'on-scene'
+  | 'busy'
   | 'offline';
 
 export type TeamType =
   | IncidentType
+  | 'fire'
+  | 'medical'
+  | 'police'
+  | 'rescue'
+  | 'disaster_response'
   | 'general';
 
 export type HospitalStatus =
@@ -115,11 +127,11 @@ export interface Incident {
   createdAt: string;
   updatedAt: string;
   resolvedAt?: string;
+  actualArrival?: string;
 
   description: string;
 
   timeline: TimelineEvent[];
-
   duplicateReports: number;
   riskFactors: string[];
 
@@ -133,6 +145,7 @@ export interface Resource {
   type: ResourceType;
   status: ResourceStatus;
 
+  location: string;
   coordinates: Coordinates;
 
   assignedIncident?: string;
@@ -267,6 +280,7 @@ export const SEVERITY_META: Record<
     color: string;
     bgColor: string;
     borderColor: string;
+    emoji: string;
   }
 > = {
   low: {
@@ -274,6 +288,7 @@ export const SEVERITY_META: Record<
     color: '#10B981',
     bgColor: '#10B98120',
     borderColor: '#10B98150',
+    emoji: '🟢',
   },
 
   medium: {
@@ -281,6 +296,7 @@ export const SEVERITY_META: Record<
     color: '#F59E0B',
     bgColor: '#F59E0B20',
     borderColor: '#F59E0B50',
+    emoji: '🟡',
   },
 
   high: {
@@ -288,6 +304,7 @@ export const SEVERITY_META: Record<
     color: '#F97316',
     bgColor: '#F9731620',
     borderColor: '#F9731650',
+    emoji: '🟠',
   },
 
   critical: {
@@ -295,6 +312,7 @@ export const SEVERITY_META: Record<
     color: '#EF233C',
     bgColor: '#EF233C20',
     borderColor: '#EF233C50',
+    emoji: '🔴',
   },
 };
 
@@ -307,24 +325,63 @@ export const STATUS_META: Record<
   {
     label: string;
     color: string;
+    dot: string;
   }
 > = {
+  reported: {
+    label: 'Reported',
+    color: '#64748B',
+    dot: '#64748B',
+  },
+
   verified: {
     label: 'Verified',
     color: '#3B82F6',
+    dot: '#3B82F6',
+  },
+
+  assigned: {
+    label: 'Assigned',
+    color: '#8B5CF6',
+    dot: '#8B5CF6',
   },
 
   responding: {
     label: 'Responding',
     color: '#F59E0B',
+    dot: '#F59E0B',
+  },
+
+  'en-route': {
+    label: 'En Route',
+    color: '#F59E0B',
+    dot: '#F59E0B',
+  },
+
+  'on-scene': {
+    label: 'On Scene',
+    color: '#06B6D4',
+    dot: '#06B6D4',
+  },
+
+  'rescue-in-progress': {
+    label: 'Rescue In Progress',
+    color: '#F97316',
+    dot: '#F97316',
   },
 
   resolved: {
     label: 'Resolved',
     color: '#10B981',
+    dot: '#10B981',
+  },
+
+  closed: {
+    label: 'Closed',
+    color: '#475569',
+    dot: '#475569',
   },
 };
-
 // ========================================
 // Incident source metadata
 // ========================================
@@ -423,29 +480,39 @@ export const TEAM_STATUS_META: Record<
   {
     label: string;
     color: string;
+    dot: string;
   }
 > = {
   available: {
     label: 'Available',
     color: '#10B981',
+    dot: '#10B981',
+  },
+
+  busy: {
+    label: 'Busy',
+    color: '#F59E0B',
+    dot: '#F59E0B',
   },
 
   'en-route': {
     label: 'En Route',
     color: '#3B82F6',
+    dot: '#3B82F6',
   },
 
   'on-scene': {
     label: 'On Scene',
-    color: '#F59E0B',
+    color: '#8B5CF6',
+    dot: '#8B5CF6',
   },
 
   offline: {
     label: 'Offline',
     color: '#64748B',
+    dot: '#64748B',
   },
 };
-
 // ========================================
 // Default map center
 // ========================================

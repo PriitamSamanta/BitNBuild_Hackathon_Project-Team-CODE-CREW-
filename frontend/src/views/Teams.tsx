@@ -27,9 +27,8 @@ export function Teams({ onOpenIncident }: TeamsProps) {
           <button
             key={s}
             onClick={() => setFilter(s)}
-            className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors ${
-              filter === s ? 'bg-royal text-white' : 'bg-navy-card text-secondary hover:text-white'
-            }`}
+            className={`shrink-0 rounded-lg px-3 py-1.5 text-xs font-medium capitalize transition-colors ${filter === s ? 'bg-royal text-white' : 'bg-navy-card text-secondary hover:text-white'
+              }`}
           >
             {s.replace('-', ' ')}
           </button>
@@ -39,7 +38,30 @@ export function Teams({ onOpenIncident }: TeamsProps) {
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
         {filtered.map((team) => {
           const meta = TEAM_STATUS_META[team.status];
-          const typeMeta = INCIDENT_TYPE_META[team.type];
+          const typeMeta =
+            team.type === 'police'
+              ? {
+                label: 'Police',
+                emoji: '👮',
+                color: '#3B82F6',
+              }
+              : team.type === 'disaster_response'
+                ? {
+                  label: 'Disaster',
+                  emoji: '🚨',
+                  color: '#F97316',
+                }
+                : team.type === 'rescue'
+                  ? {
+                    label: 'Rescue',
+                    emoji: '🛟',
+                    color: '#8B5CF6',
+                  }
+                  : INCIDENT_TYPE_META[
+                  team.type === 'general'
+                    ? 'infrastructure'
+                    : team.type
+                  ];
           const incident = team.assignedIncident ? incidents.find((i) => i.id === team.assignedIncident) : null;
 
           return (
