@@ -4,6 +4,8 @@ import {
   createContext,
   useCallback,
   useContext,
+  useState,
+  useEffect,
   type ReactNode,
 } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -20,8 +22,10 @@ import type {
   IncidentType,
   IncidentSource,
   IncidentStatus,
+  UserRole,
 } from '@/types';
 
+import api from '@/lib/api';
 import { getIncidents } from '@/services/incidentService';
 import {
   getTeams,
@@ -38,6 +42,7 @@ import type {
 } from '@/types/api';
 
 type AppState = {
+  userRole: UserRole;
   incidents: Incident[];
   resources: Resource[];
   teams: Team[];
@@ -52,11 +57,163 @@ const QUERY_KEY = ['resq', 'state'];
 const INCIDENTS_QUERY_KEY = ['resq', 'incidents'];
 const TEAMS_QUERY_KEY = ['resq', 'teams'];
 
+export const DEFAULT_HOSPITALS: Hospital[] = [
+  {
+    id: 'HOSP-01',
+    name: 'Ahmedabad Civil Hospital',
+    location: 'Asarwa, Ahmedabad',
+    coordinates: { lat: 23.0525, lng: 72.6026 },
+    emergencyBeds: 120,
+    icuBeds: 35,
+    ambulance: 8,
+    distance: 4.2,
+    status: 'available',
+  },
+  {
+    id: 'HOSP-02',
+    name: 'Sterling Hospital',
+    location: 'Memnagar, Ahmedabad',
+    coordinates: { lat: 23.0504, lng: 72.5325 },
+    emergencyBeds: 65,
+    icuBeds: 20,
+    ambulance: 5,
+    distance: 2.8,
+    status: 'available',
+  },
+  {
+    id: 'HOSP-03',
+    name: 'SSG Hospital',
+    location: 'Karelibaug, Vadodara',
+    coordinates: { lat: 22.3072, lng: 73.1812 },
+    emergencyBeds: 95,
+    icuBeds: 28,
+    ambulance: 6,
+    distance: 6.5,
+    status: 'available',
+  },
+  {
+    id: 'HOSP-04',
+    name: 'Apollo Hospitals',
+    location: 'Plot 1A, Bhat, Gandhinagar',
+    coordinates: { lat: 23.1118, lng: 72.6102 },
+    emergencyBeds: 80,
+    icuBeds: 24,
+    ambulance: 6,
+    distance: 8.1,
+    status: 'available',
+  },
+  {
+    id: 'HOSP-05',
+    name: 'Zydus Hospital',
+    location: 'Thaltej, SG Highway, Ahmedabad',
+    coordinates: { lat: 23.0645, lng: 72.5186 },
+    emergencyBeds: 55,
+    icuBeds: 18,
+    ambulance: 4,
+    distance: 3.4,
+    status: 'available',
+  },
+  {
+    id: 'HOSP-06',
+    name: 'Shalby Multi-Specialty Hospital',
+    location: 'SG Highway, Bodakdev, Ahmedabad',
+    coordinates: { lat: 23.0135, lng: 72.5028 },
+    emergencyBeds: 45,
+    icuBeds: 15,
+    ambulance: 3,
+    distance: 1.9,
+    status: 'busy',
+  },
+];
+
+export const DEFAULT_RESOURCES: Resource[] = [
+  {
+    id: 'RES-AMB-01',
+    type: 'ambulance',
+    status: 'available',
+    location: 'Central Trauma Base - Ahmedabad',
+    coordinates: { lat: 23.0525, lng: 72.6026 },
+    eta: 8,
+  },
+  {
+    id: 'RES-FT-01',
+    type: 'fire-tender',
+    status: 'available',
+    location: 'SG Highway Fire Station',
+    coordinates: { lat: 23.0225, lng: 72.5714 },
+    eta: 6,
+  },
+  {
+    id: 'RES-DRN-01',
+    type: 'drone',
+    status: 'available',
+    location: 'Disaster Cell Drone Unit',
+    coordinates: { lat: 23.0400, lng: 72.5400 },
+    eta: 4,
+  },
+  {
+    id: 'RES-BOAT-01',
+    type: 'rescue-boat',
+    status: 'available',
+    location: 'Sabarmati Riverfront Rescue Station',
+    coordinates: { lat: 23.0300, lng: 72.5800 },
+    eta: 12,
+  },
+  {
+    id: 'RES-MED-01',
+    type: 'medical-kit',
+    status: 'available',
+    location: 'District Rapid Response Hub',
+    coordinates: { lat: 23.0450, lng: 72.5500 },
+    eta: 5,
+  },
+];
+
+export const DEFAULT_TEAMS: Team[] = [
+  {
+    id: 'TEAM-MED-01',
+    name: '108 EMRI Medical Unit 1',
+    type: 'medical',
+    status: 'available',
+    vehicle: 'Advanced Life Ambulance',
+    coordinates: { lat: 23.0338, lng: 72.5126 },
+    eta: 7,
+  },
+  {
+    id: 'TEAM-FIRE-01',
+    name: 'Bodakdev Fire Tender 01',
+    type: 'fire',
+    status: 'available',
+    vehicle: 'Fire Engine Unit 4',
+    coordinates: { lat: 23.0225, lng: 72.5714 },
+    eta: 5,
+  },
+  {
+    id: 'TEAM-RESCUE-01',
+    name: 'SDRF Rapid Rescue Unit 2',
+    type: 'rescue',
+    status: 'available',
+    vehicle: 'Heavy Rescue Vehicle',
+    coordinates: { lat: 23.0450, lng: 72.5500 },
+    eta: 9,
+  },
+  {
+    id: 'TEAM-POLICE-01',
+    name: 'Traffic Control PCR 05',
+    type: 'police',
+    status: 'available',
+    vehicle: 'Police Cruiser',
+    coordinates: { lat: 23.0200, lng: 72.5600 },
+    eta: 4,
+  },
+];
+
 const EMPTY_STATE: AppState = {
+  userRole: 'admin',
   incidents: [],
-  resources: [],
-  teams: [],
-  hospitals: [],
+  resources: DEFAULT_RESOURCES,
+  teams: DEFAULT_TEAMS,
+  hospitals: DEFAULT_HOSPITALS,
   notifications: [],
   alerts: [],
   chatHistory: [],
@@ -315,9 +472,22 @@ function readState(): AppState {
       return EMPTY_STATE;
     }
 
+    const parsed = JSON.parse(raw);
     return {
       ...EMPTY_STATE,
-      ...JSON.parse(raw),
+      ...parsed,
+      hospitals:
+        parsed.hospitals && parsed.hospitals.length > 0
+          ? parsed.hospitals
+          : DEFAULT_HOSPITALS,
+      resources:
+        parsed.resources && parsed.resources.length > 0
+          ? parsed.resources
+          : DEFAULT_RESOURCES,
+      teams:
+        parsed.teams && parsed.teams.length > 0
+          ? parsed.teams
+          : DEFAULT_TEAMS,
     } as AppState;
   } catch {
     return EMPTY_STATE;
@@ -338,6 +508,8 @@ function writeState(state: AppState) {
    ========================================================= */
 
 interface AppContextValue extends AppState {
+  setUserRole: (role: UserRole) => void;
+
   addIncident: (incident: Incident) => void;
 
   updateIncident: (
@@ -401,6 +573,24 @@ export function AppProvider({
 }) {
   const queryClient = useQueryClient();
 
+  const [userRole, setUserRoleState] = useState<UserRole>('admin');
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const savedRole = window.localStorage.getItem('resq_user_role') as UserRole | null;
+      if (savedRole === 'admin' || savedRole === 'user') {
+        setUserRoleState(savedRole);
+      }
+    }
+  }, []);
+
+  const setUserRole = useCallback((role: UserRole) => {
+    setUserRoleState(role);
+    if (typeof window !== 'undefined') {
+      window.localStorage.setItem('resq_user_role', role);
+    }
+  }, []);
+
   /*
    * Keep the existing local state for the other UI modules.
    */
@@ -439,21 +629,6 @@ export function AppProvider({
     refetchOnWindowFocus: true,
   });
 
-  const incidents: Incident[] =
-    backendIncidents.map(mapApiIncident);
-
-  const teams: Team[] =
-    backendTeams.map(mapApiTeam);
-
-  /*
-   * Real incidents from the ResQAI backend.
-   */
-
-
-  /*
-   * Convert backend incidents into the existing UI model.
-   */
-
   const updateState = useCallback(
     (
       updater: (current: AppState) => AppState,
@@ -477,16 +652,46 @@ export function AppProvider({
      ======================================================= */
 
   const addIncident = useCallback(
-    (incident: Incident) => {
+    async (incident: Incident) => {
       updateState((s) => ({
         ...s,
         incidents: [
           incident,
-          ...s.incidents,
+          ...s.incidents.filter((i) => i.id !== incident.id),
         ],
       }));
+
+      try {
+        await api.post('/api/incidents', {
+          type: incident.type,
+          title: incident.title,
+          description: incident.description,
+          severity: incident.severity,
+          source: incident.source,
+          location: {
+            address: incident.location,
+            latitude: incident.coordinates?.lat ?? 23.0225,
+            longitude: incident.coordinates?.lng ?? 72.5714,
+          },
+          peopleAffected: incident.peopleAffected,
+          priority:
+            incident.severity === 'critical'
+              ? 5
+              : incident.severity === 'high'
+                ? 4
+                : incident.severity === 'medium'
+                  ? 3
+                  : 2,
+        });
+
+        await queryClient.invalidateQueries({
+          queryKey: INCIDENTS_QUERY_KEY,
+        });
+      } catch (err) {
+        console.warn('Backend sync skipped or offline (local state active):', err);
+      }
     },
-    [updateState],
+    [updateState, queryClient],
   );
 
   const updateIncident = useCallback(
@@ -649,64 +854,91 @@ export function AppProvider({
       teamId: string,
       incidentId: string,
     ) => {
+      // 1. Immediately update local state so UI reflects it right away
+      updateState((s) => ({
+        ...s,
+        teams: s.teams.map((t) =>
+          t.id === teamId
+            ? {
+                ...t,
+                status: 'en-route' as const,
+                assignedIncident: incidentId,
+                destination: s.incidents.find((i) => i.id === incidentId)?.location,
+                eta: t.eta ?? 6,
+              }
+            : t,
+        ),
+        incidents: s.incidents.map((i) =>
+          i.id === incidentId
+            ? {
+                ...i,
+                assignedTeamss: i.assignedTeamss.includes(teamId)
+                  ? i.assignedTeamss
+                  : [...i.assignedTeamss, teamId],
+                status: 'responding' as const,
+                updatedAt: new Date().toISOString(),
+                timeline: [
+                  ...i.timeline,
+                  {
+                    time: new Date().toLocaleTimeString('en-IN', {
+                      hour: '2-digit',
+                      minute: '2-digit',
+                    }),
+                    event: `Team ${teamId} dispatched (En Route)`,
+                    icon: '🚒',
+                  },
+                ],
+              }
+            : i,
+        ),
+      }));
+
+      addNotification({
+        type: 'success',
+        title: 'Team Dispatched',
+        message: `${teamId} dispatched to ${incidentId}.`,
+        incidentId,
+      });
+
+      // 2. Also try backend dispatch if backend incident exists
       try {
-        // Find the backend incident so we can use its MongoDB _id.
         const backendIncident = backendIncidents.find(
-          (incident) => incident.incidentId === incidentId,
+          (incident) => incident.incidentId === incidentId || incident._id === incidentId,
         );
 
-        if (!backendIncident) {
-          throw new Error(
-            `Backend incident not found: ${incidentId}`,
+        if (backendIncident) {
+          await dispatchTeams(
+            backendIncident._id,
+            [teamId],
           );
+
+          await queryClient.invalidateQueries({
+            queryKey: INCIDENTS_QUERY_KEY,
+          });
+
+          await queryClient.invalidateQueries({
+            queryKey: TEAMS_QUERY_KEY,
+          });
         }
-
-        await dispatchTeams(
-          backendIncident._id,
-          [teamId],
-        );
-
-        // Refresh backend data after dispatch.
-        await queryClient.invalidateQueries({
-          queryKey: INCIDENTS_QUERY_KEY,
-        });
-
-        await queryClient.invalidateQueries({
-          queryKey: TEAMS_QUERY_KEY,
-        });
-
-        addNotification({
-          type: 'success',
-          title: 'Team Dispatched',
-          message: `${teamId} dispatched to ${incidentId}.`,
-          incidentId,
-        });
       } catch (error) {
-        console.error(
-          'Failed to dispatch team:',
-          error,
-        );
-
-        addNotification({
-          type: 'warning',
-          title: 'Dispatch Failed',
-          message:
-            error instanceof Error
-              ? error.message
-              : `Could not dispatch ${teamId}.`,
-          incidentId,
-        });
+        console.warn('Backend team dispatch sync error (local state active):', error);
       }
     },
     [
       backendIncidents,
       queryClient,
       addNotification,
+      updateState,
     ],
   );
 
   const updateTeamStatus = useCallback(
     async (teamId: string, status: TeamStatus) => {
+      updateState((s) => ({
+        ...s,
+        teams: s.teams.map((t) => (t.id === teamId ? { ...t, status } : t)),
+      }));
+
       try {
         await updateTeamStatusApi(
           teamId,
@@ -727,19 +959,10 @@ export function AppProvider({
           message: `${teamId} status changed to ${status.replace('-', ' ')}`,
         });
       } catch (error) {
-        console.error(
-          'Failed to update team status:',
-          error,
-        );
-
-        addNotification({
-          type: 'warning',
-          title: 'Status Update Failed',
-          message: `Could not update ${teamId} status.`,
-        });
+        console.warn('Backend team status update error:', error);
       }
     },
-    [addNotification, queryClient],
+    [addNotification, queryClient, updateState],
   );
 
   const markNotificationRead = useCallback(
@@ -858,27 +1081,49 @@ export function AppProvider({
   }, [queryClient]);
 
   /*
-   * Prevent unused-variable warnings while we
-   * gradually migrate the remaining UI modules.
+   * Merge backend data with local additions/mutations.
+   * Ensures shared reactivity across both Admin and Citizen panels.
    */
+  const backendIncidentList = backendIncidents.map(mapApiIncident);
+  const localIncidents = (localState.incidents || []).filter(
+    (li) => !backendIncidentList.some((bi) => bi.id === li.id),
+  );
+  const incidents: Incident[] = [...localIncidents, ...backendIncidentList].map((inc) => {
+    const localMatch = (localState.incidents || []).find((l) => l.id === inc.id);
+    return localMatch ? { ...inc, ...localMatch } : inc;
+  });
+
+  const backendTeamList = backendTeams.map(mapApiTeam);
+  const baseTeams = backendTeamList.length > 0 ? backendTeamList : DEFAULT_TEAMS;
+  const teams: Team[] = baseTeams.map((t) => {
+    const localMatch = (localState.teams || []).find((lt) => lt.id === t.id);
+    return localMatch ? { ...t, ...localMatch } : t;
+  });
+
+  const hospitals: Hospital[] =
+    localState.hospitals && localState.hospitals.length > 0
+      ? localState.hospitals
+      : DEFAULT_HOSPITALS;
+
+  const resources: Resource[] =
+    localState.resources && localState.resources.length > 0
+      ? localState.resources
+      : DEFAULT_RESOURCES;
+
   void incidentsLoading;
+  void incidentsError;
+  void teamsLoading;
+  void teamsError;
 
   return (
     <AppContext.Provider
       value={{
-        /*
-         * IMPORTANT:
-         * incidents now come from MongoDB/backend.
-         */
+        userRole,
+        setUserRole,
         incidents,
-
-        /*
-         * These remain local for the moment.
-         * We'll connect them to the backend next.
-         */
-        resources: localState.resources,
+        resources,
         teams,
-        hospitals: localState.hospitals,
+        hospitals,
         notifications: localState.notifications,
         alerts: localState.alerts,
         chatHistory: localState.chatHistory,

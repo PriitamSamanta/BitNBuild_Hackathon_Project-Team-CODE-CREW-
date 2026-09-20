@@ -8,7 +8,10 @@ export type IncidentType =
   | 'flood'
   | 'medical'
   | 'chemical'
-  | 'infrastructure';
+  | 'infrastructure'
+  | 'structural'
+  | 'road'
+  | 'other';
 
 export type Severity =
   | 'low'
@@ -22,7 +25,11 @@ export type IncidentSource =
   | 'iot'
   | 'field'
   | 'hospital'
-  | 'government';
+  | 'government'
+  | 'field_team'
+  | 'sensor'
+  | 'admin'
+  | 'system';
 
 export type IncidentStatus =
   | 'verified'
@@ -87,6 +94,19 @@ export type ChatRole =
   | 'user'
   | 'assistant';
 
+export type UserRole =
+  | 'admin'
+  | 'user';
+
+export interface EmergencyContact {
+  id: string;
+  title: string;
+  number: string;
+  description: string;
+  badgeColor?: string;
+  availableHours?: string;
+}
+
 export interface Coordinates {
   lat: number;
   lng: number;
@@ -138,6 +158,9 @@ export interface Incident {
   escalationLevel: number;
 
   expectedArrival?: string;
+  trackingCode?: string;
+  reportedBy?: string;
+  mediaAttachment?: string;
 }
 
 export interface Resource {
@@ -267,6 +290,24 @@ export const INCIDENT_TYPE_META: Record<
     emoji: '🏗️',
     color: '#64748B',
   },
+
+  structural: {
+    label: 'Structural',
+    emoji: '🏗️',
+    color: '#64748B',
+  },
+
+  road: {
+    label: 'Road Emergency',
+    emoji: '🛣️',
+    color: '#F97316',
+  },
+
+  other: {
+    label: 'Other Emergency',
+    emoji: '🚨',
+    color: '#94A3B8',
+  },
 };
 
 // ========================================
@@ -382,6 +423,7 @@ export const STATUS_META: Record<
     dot: '#475569',
   },
 };
+
 // ========================================
 // Incident source metadata
 // ========================================
@@ -420,6 +462,26 @@ export const SOURCE_META: Record<
 
   government: {
     label: 'Government',
+    color: '#64748B',
+  },
+
+  field_team: {
+    label: 'Field Team',
+    color: '#10B981',
+  },
+
+  sensor: {
+    label: 'Sensor',
+    color: '#A855F7',
+  },
+
+  admin: {
+    label: 'Admin',
+    color: '#8B5CF6',
+  },
+
+  system: {
+    label: 'System',
     color: '#64748B',
   },
 };
@@ -513,6 +575,7 @@ export const TEAM_STATUS_META: Record<
     dot: '#64748B',
   },
 };
+
 // ========================================
 // Default map center
 // ========================================

@@ -22,6 +22,20 @@ import { Alerts } from '@/views/Alerts';
 import { Settings } from '@/views/Settings';
 import { NotificationsPage } from '@/views/NotificationsPage';
 
+import { UserHeader, type UserPageId } from '@/components/user/UserHeader';
+import { UserSidebar } from '@/components/user/UserSidebar';
+import { SOSModal } from '@/components/user/SOSModal';
+
+import { UserDashboard } from '@/views/user/UserDashboard';
+import { CitizenPortal } from '@/components/citizen/citizen-portal';
+import { ReportIncident } from '@/views/user/ReportIncident';
+import { MyReports } from '@/views/user/MyReports';
+import { UserMap } from '@/views/user/UserMap';
+import { NearbyHospitals } from '@/views/user/NearbyHospitals';
+import { EmergencyContacts } from '@/views/user/EmergencyContacts';
+import { UserNotifications } from '@/views/user/UserNotifications';
+import { UserSettings } from '@/views/user/UserSettings';
+
 function CommandCenter() {
   const { incidents } = useApp();
   const [page, setPage] = useState<PageId>('dashboard');
@@ -84,6 +98,86 @@ function CommandCenter() {
   );
 }
 
-export default function App() {
-  return <AppProvider><CommandCenter /></AppProvider>;
+function CitizenApp() {
+  const [page, setPage] = useState<UserPageId>('dashboard');
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sosOpen, setSosOpen] = useState(false);
+  const [trackedIncidentId, setTrackedIncidentId] = useState<string | undefined>();
+
+  const handleNavigate = useCallback((p: UserPageId) => {
+    setPage(p);
+  }, []);
+
+  const handleOpenReport = useCallback((id: string) => {
+    setTrackedIncidentId(id);
+    setPage('tracking');
+  }, []);
+
+  const renderCitizenPage = () => {
+    switch (page) {
+      case 'dashboard':
+        return <UserDashboard onNavigate={handleNavigate} onOpenSOS={() => setSosOpen(true)} />;
+      case 'report':
+        return <ReportIncident onNavigate={handleNavigate} onIncidentReported={handleOpenReport} />;
+      case 'tracking':
+        return <MyReports onNavigate={handleNavigate} initialIncidentId={trackedIncidentId} />;
+      case 'map':
+        return <UserMap onNavigate={handleNavigate} onOpenReport={handleOpenReport} />;
+      case 'hospitals':
+        return <NearbyHospitals />;
+      case 'contacts':
+        return <EmergencyContacts />;
+      case 'notifications':
+        return <UserNotifications onNavigate={handleNavigate} onOpenReport={handleOpenReport} />;
+      case 'settings':
+        return <UserSettings />;
+      default:
+        return <UserDashboard onNavigate={handleNavigate} onOpenSOS={() => setSosOpen(true)} />;
+    }
+  };
+
+  return (
+    <div className="flex h-screen overflow-hidden bg-navy-deep">
+      <UserSidebar
+        current={page}
+        onNavigate={handleNavigate}
+        onOpenSOS={() => setSosOpen(true)}
+        open={sidebarOpen}
+        onClose={() => setSidebarOpen(false)}
+      />
+      <div className="flex flex-1 flex-col overflow-hidden">
+        <UserHeader
+          current={page}
+          onNavigate={handleNavigate}
+          onOpenSOS={() => setSosOpen(true)}
+          onOpenSidebar={() => setSidebarOpen(true)}
+        />
+        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{renderCitizenPage()}</main>
+      </div>
+      <SOSModal
+        open={sosOpen}
+        onClose={() => setSosOpen(false)}
+        onSuccess={(id) => handleOpenReport(id)}
+      />
+    </div>
+  );
 }
+
+function MainContent() {
+  const { userRole } = useApp();
+
+  if (userRole === 'user') {
+    return <CitizenPortal />;
+  }
+
+  return <CommandCenter />;
+}
+
+export default function App() {
+  return (
+    <AppProvider>
+      <MainContent />
+    </AppProvider>
+  );
+}
+

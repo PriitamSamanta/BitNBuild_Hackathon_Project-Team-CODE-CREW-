@@ -52,7 +52,7 @@ export function AIIntensityEngine({ incident }: { incident: Incident }) {
       <div className="mt-3">
         <p className="text-xs font-semibold text-secondary mb-2">Why?</p>
         <div className="space-y-1.5">
-          {incident.riskFactors.map((factor, i) => (
+          {(incident.riskFactors ?? []).map((factor, i) => (
             <div key={i} className="flex items-start gap-2">
               <CheckCircle2 size={13} className="text-response shrink-0 mt-0.5" />
               <span className="text-xs text-white/90">{factor}</span>

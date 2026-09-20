@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Bell, ChevronDown, Plus, MapPin, Menu, Search } from 'lucide-react';
+import { Bell, ChevronDown, Plus, MapPin, Menu, Search, User } from 'lucide-react';
 import { useApp } from '@/context/AppContext';
 import type { PageId } from './Sidebar';
 
@@ -16,7 +16,7 @@ export function Header({
   onOpenNotifications,
   onOpenSidebar,
 }: HeaderProps) {
-  const { notifications } = useApp();
+  const { notifications, setUserRole } = useApp();
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const unread = notifications.filter((n) => !n.read).length;
@@ -71,6 +71,15 @@ export function Header({
         )}
       </button>
 
+      <button
+        onClick={() => setUserRole('user')}
+        className="hidden sm:flex items-center gap-1.5 rounded-lg border border-emergency/40 bg-emergency/10 px-2.5 py-1.5 text-xs font-semibold text-emergency transition-all hover:bg-emergency hover:text-white"
+        title="Switch to Citizen Portal"
+      >
+        <User size={13} />
+        <span>Citizen Mode</span>
+      </button>
+
       <div className="relative" ref={dropdownRef}>
         <button
           onClick={() => setDropdownOpen((o) => !o)}
@@ -83,11 +92,21 @@ export function Header({
           <ChevronDown size={14} className="text-secondary" />
         </button>
         {dropdownOpen && (
-          <div className="absolute right-0 top-12 z-50 w-48 rounded-xl border border-navy-border bg-navy-card p-1.5 shadow-2xl animate-fade-in">
+          <div className="absolute right-0 top-12 z-[9990] w-48 rounded-xl border border-navy-border bg-navy-card p-1.5 shadow-2xl animate-fade-in">
             <div className="px-3 py-2 border-b border-navy-border mb-1">
               <p className="text-sm font-semibold text-white">Admin User</p>
               <p className="text-xs text-muted">Emergency Operations Center</p>
             </div>
+            <button
+              onClick={() => {
+                setUserRole('user');
+                setDropdownOpen(false);
+              }}
+              className="flex w-full items-center gap-2 rounded-lg px-3 py-2 text-sm text-emergency hover:bg-navy-secondary font-medium"
+            >
+              <User size={14} />
+              Switch to Citizen Mode
+            </button>
             <button
               onClick={() => {
                 onNavigate('settings');

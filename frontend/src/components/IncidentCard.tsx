@@ -10,8 +10,21 @@ interface IncidentCardProps {
 }
 
 export function IncidentCard({ incident, onClick, compact }: IncidentCardProps) {
-  const typeMeta = INCIDENT_TYPE_META[incident.type];
-  const statusMeta = STATUS_META[incident.status];
+  const typeMeta = INCIDENT_TYPE_META[incident.type] ?? {
+    label: incident.type || 'Unknown',
+    emoji: '🚨',
+    color: '#94A3B8',
+  };
+  const statusColor =
+    STATUS_META[incident.status]?.color ?? '#94A3B8';
+
+  const statusLabel =
+    STATUS_META[incident.status]?.label ??
+    incident.status?.replace(/-/g, ' ') ??
+    'Unknown';
+
+  const statusDot =
+    STATUS_META[incident.status]?.dot ?? '●';
   const sourceMeta = SOURCE_META[incident.source];
 
   return (
@@ -74,11 +87,12 @@ export function IncidentCard({ incident, onClick, compact }: IncidentCardProps) 
 
       <div className="mt-2.5 flex items-center justify-between">
         <div className="flex items-center gap-1.5">
-          <span className="text-xs" style={{ color: statusMeta.color }}>
-            {statusMeta.dot}
+          <span className="text-xs" style={{ color: statusColor }}>
+            {statusDot}
           </span>
-          <span className="text-xs font-medium" style={{ color: statusMeta.color }}>
-            {statusMeta.label}
+
+          <span className="text-xs font-medium" style={{ color: statusColor }}>
+            {statusLabel}
           </span>
         </div>
         {incident.assignedTeamss.length > 0 && (

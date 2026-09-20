@@ -21,15 +21,45 @@ interface LiveMapProps {
   showHospitals?: boolean;
   fullscreen?: boolean;
   className?: string;
+  userLocation?: { lat: number; lng: number; address?: string; area?: string };
+  onLocationSelect?: (coords: { lat: number; lng: number; address?: string; area?: string }) => void;
+  showLegend?: boolean;
 }
 
 type LeafletApi = typeof import('leaflet');
 type LeafletMap = import('leaflet').Map;
 type LeafletLayerGroup = import('leaflet').LayerGroup;
 
+function createUserLocationIcon(L: LeafletApi) {
+  return L.divIcon({
+    className: 'custom-user-marker',
+    html: `
+      <div style="position:relative;display:flex;align-items:center;justify-content:center;">
+        <div class="marker-pulse" style="position:absolute;width:44px;height:44px;border-radius:50%;background:#ef233c;opacity:0.5;"></div>
+        <div style="position:relative;width:28px;height:28px;border-radius:50%;background:#ef233c;border:3px solid #ffffff;display:flex;align-items:center;justify-content:center;box-shadow:0 0 16px rgba(239,35,60,0.8);font-size:13px;">
+          📍
+        </div>
+      </div>
+    `,
+    iconSize: [44, 44],
+    iconAnchor: [22, 22],
+    popupAnchor: [0, -24],
+  });
+}
+
 function createIncidentIcon(L: LeafletApi, incident: Incident) {
-  const typeMeta = INCIDENT_TYPE_META[incident.type];
-  const sevMeta = SEVERITY_META[incident.severity];
+  const typeMeta = INCIDENT_TYPE_META[incident.type] ?? {
+    label: incident.type || 'Unknown',
+    emoji: '🚨',
+    color: '#94A3B8',
+  };
+
+  const sevMeta = SEVERITY_META[incident.severity] ?? {
+    label: incident.severity || 'Unknown',
+    color: '#94A3B8',
+    bgColor: '#94A3B820',
+    borderColor: '#94A3B8',
+  };
   const isResolved = incident.status === 'resolved';
   const pulse = !isResolved && incident.severity === 'critical';
 
@@ -37,14 +67,12 @@ function createIncidentIcon(L: LeafletApi, incident: Incident) {
     className: 'custom-marker',
     html: `
       <div style="position:relative;display:flex;align-items:center;justify-content:center;">
-        ${
-          pulse
-            ? `<div class="marker-pulse" style="position:absolute;width:36px;height:36px;border-radius:50%;background:${sevMeta.color};"></div>`
-            : ''
-        }
-        <div style="position:relative;width:30px;height:30px;border-radius:50%;background:${
-          isResolved ? '#10B981' : sevMeta.color
-        };border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.4);">
+        ${pulse
+        ? `<div class="marker-pulse" style="position:absolute;width:36px;height:36px;border-radius:50%;background:${sevMeta.color};"></div>`
+        : ''
+      }
+        <div style="position:relative;width:30px;height:30px;border-radius:50%;background:${isResolved ? '#10B981' : sevMeta.color
+      };border:2px solid #fff;display:flex;align-items:center;justify-content:center;font-size:14px;box-shadow:0 2px 8px rgba(0,0,0,.4);">
           ${typeMeta.emoji}
         </div>
       </div>
@@ -91,6 +119,9 @@ export function LiveMap({
   showTeams = true,
   showHospitals = true,
   className = '',
+  userLocation,
+  onLocationSelect,
+  showLegend = true,
 }: LiveMapProps) {
   const { incidents, teams, hospitals } = useApp();
 
@@ -100,8 +131,8 @@ export function LiveMap({
 
   const markersRef = useRef<LeafletLayerGroup | null>(null);
   const teamMarkersRef = useRef<LeafletLayerGroup | null>(null);
-  const hospitalMarkersRef =
-    useRef<LeafletLayerGroup | null>(null);
+  const hospitalMarkersRef = useRef<LeafletLayerGroup | null>(null);
+  const userMarkerRef = useRef<import('leaflet').Marker | null>(null);
 
   const [mapReady, setMapReady] = useState(false);
 
@@ -185,9 +216,24 @@ export function LiveMap({
       const coordinates = incident.coordinates;
       if (!coordinates) return;
 
-      const typeMeta = INCIDENT_TYPE_META[incident.type];
-      const statusMeta = STATUS_META[incident.status];
-      const severityMeta = SEVERITY_META[incident.severity];
+      const typeMeta = INCIDENT_TYPE_META[incident.type] ?? {
+        label: incident.type || 'Unknown',
+        emoji: '🚨',
+        color: '#94A3B8',
+      };
+
+      const statusMeta = STATUS_META[incident.status] ?? {
+        label: incident.status?.replace(/-/g, ' ') || 'Unknown',
+        color: '#94A3B8',
+        dot: '●',
+      };
+
+      const severityMeta = SEVERITY_META[incident.severity] ?? {
+        label: incident.severity || 'Unknown',
+        color: '#94A3B8',
+        bgColor: '#94A3B820',
+        borderColor: '#94A3B8',
+      };
 
       const marker = L.marker(
         [coordinates.lat, coordinates.lng],
@@ -222,13 +268,12 @@ export function LiveMap({
             👥 ${incident.peopleAffected} people affected
           </div>
 
-          ${
-            incident.assignedTeamss.length > 0
-              ? `<div style="color:#94A3B8;font-size:11px;margin-bottom:4px;">
+          ${incident.assignedTeamss.length > 0
+          ? `<div style="color:#94A3B8;font-size:11px;margin-bottom:4px;">
                    🚒 ${incident.assignedTeamss.length} team(s) dispatched
                  </div>`
-              : ''
-          }
+          : ''
+        }
 
           <div style="color:${statusMeta.color};font-size:11px;font-weight:600;margin-bottom:8px;">
             ● ${statusMeta.label}
@@ -307,21 +352,19 @@ export function LiveMap({
             ● ${meta.label}
           </div>
 
-          ${
-            team.eta
-              ? `<div style="color:#94A3B8;font-size:11px;margin-top:2px;">
+          ${team.eta
+          ? `<div style="color:#94A3B8;font-size:11px;margin-top:2px;">
                    ETA: ${team.eta} min
                  </div>`
-              : ''
-          }
+          : ''
+        }
 
-          ${
-            team.destination
-              ? `<div style="color:#94A3B8;font-size:11px;">
+          ${team.destination
+          ? `<div style="color:#94A3B8;font-size:11px;">
                    → ${team.destination}
                  </div>`
-              : ''
-          }
+          : ''
+        }
         </div>
       `);
 
@@ -391,6 +434,63 @@ export function LiveMap({
     });
   }, [hospitals, showHospitals, mapReady]);
 
+  // User Location marker (pulsing pin for citizen location)
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !leafletRef.current) return;
+    const L = leafletRef.current;
+    const map = mapRef.current;
+
+    if (userLocation) {
+      if (!userMarkerRef.current) {
+        const marker = L.marker([userLocation.lat, userLocation.lng], {
+          icon: createUserLocationIcon(L),
+          zIndexOffset: 1200,
+        });
+        marker.bindPopup(`
+          <div style="min-width:180px;padding:3px 0;">
+            <div style="font-weight:700;color:#fff;font-size:13px;margin-bottom:3px;">📍 Your Location</div>
+            <div style="color:#CBD5E1;font-size:11px;margin-bottom:4px;">${userLocation.address || 'Ahmedabad, Gujarat'}</div>
+            <div style="color:#94A3B8;font-size:10px;font-family:monospace;">Lat: ${userLocation.lat.toFixed(4)}, Lng: ${userLocation.lng.toFixed(4)}</div>
+          </div>
+        `);
+        marker.addTo(map);
+        userMarkerRef.current = marker;
+      } else {
+        userMarkerRef.current.setLatLng([userLocation.lat, userLocation.lng]);
+        userMarkerRef.current.setPopupContent(`
+          <div style="min-width:180px;padding:3px 0;">
+            <div style="font-weight:700;color:#fff;font-size:13px;margin-bottom:3px;">📍 Your Location</div>
+            <div style="color:#CBD5E1;font-size:11px;margin-bottom:4px;">${userLocation.address || 'Ahmedabad, Gujarat'}</div>
+            <div style="color:#94A3B8;font-size:10px;font-family:monospace;">Lat: ${userLocation.lat.toFixed(4)}, Lng: ${userLocation.lng.toFixed(4)}</div>
+          </div>
+        `);
+      }
+    } else if (userMarkerRef.current) {
+      userMarkerRef.current.remove();
+      userMarkerRef.current = null;
+    }
+  }, [hospitals, showHospitals, mapReady, userLocation]);
+
+  // Click on map to select location
+  useEffect(() => {
+    if (!mapReady || !mapRef.current || !onLocationSelect) return;
+    const map = mapRef.current;
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const handleMapClick = (e: any) => {
+      const lat = Number(e.latlng.lat.toFixed(4));
+      const lng = Number(e.latlng.lng.toFixed(4));
+      const area = 'SG Highway';
+      const address = `SG Highway, Bodakdev, Ahmedabad, Gujarat`;
+      onLocationSelect({ lat, lng, area, address });
+    };
+
+    map.on('click', handleMapClick);
+    return () => {
+      map.off('click', handleMapClick);
+    };
+  }, [mapReady, onLocationSelect]);
+
   const handleLocate = () => {
     if (!navigator.geolocation || !mapRef.current) return;
 
@@ -434,12 +534,12 @@ export function LiveMap({
 
   return (
     <div
-      className={`relative overflow-hidden rounded-xl border border-navy-border ${className}`}
+      className={`isolate relative z-0 overflow-hidden rounded-xl border border-navy-border ${className}`}
       style={{ height }}
     >
       <div ref={containerRef} className="h-full w-full" />
 
-      <div className="absolute right-3 top-3 z-[500] flex flex-col gap-1.5">
+      <div className="absolute right-3 top-3 z-10 flex flex-col gap-1.5">
         <button
           type="button"
           onClick={handleLocate}
@@ -468,32 +568,34 @@ export function LiveMap({
         </button>
       </div>
 
-      <div className="absolute bottom-3 left-3 z-[500] flex flex-wrap gap-2 rounded-lg border border-navy-border bg-navy-card/90 px-3 py-2 shadow-lg backdrop-blur">
-        <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-emergency-critical" />
-          Critical
-        </span>
+      {showLegend && (
+        <div className="absolute bottom-3 left-3 z-10 flex flex-wrap gap-2 rounded-lg border border-navy-border bg-navy-card/90 px-3 py-2 shadow-lg backdrop-blur">
+          <span className="flex items-center gap-1 text-[10px] text-secondary">
+            <span className="h-2.5 w-2.5 rounded-full bg-emergency-critical" />
+            Critical
+          </span>
 
-        <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-warning" />
-          High
-        </span>
+          <span className="flex items-center gap-1 text-[10px] text-secondary">
+            <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+            High
+          </span>
 
-        <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-warning" />
-          Medium
-        </span>
+          <span className="flex items-center gap-1 text-[10px] text-secondary">
+            <span className="h-2.5 w-2.5 rounded-full bg-warning" />
+            Medium
+          </span>
 
-        <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-royal" />
-          Low
-        </span>
+          <span className="flex items-center gap-1 text-[10px] text-secondary">
+            <span className="h-2.5 w-2.5 rounded-full bg-royal" />
+            Low
+          </span>
 
-        <span className="flex items-center gap-1 text-[10px] text-secondary">
-          <span className="h-2.5 w-2.5 rounded-full bg-response" />
-          Resolved
-        </span>
-      </div>
+          <span className="flex items-center gap-1 text-[10px] text-secondary">
+            <span className="h-2.5 w-2.5 rounded-full bg-response" />
+            Resolved
+          </span>
+        </div>
+      )}
     </div>
   );
 }
