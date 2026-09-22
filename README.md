@@ -67,6 +67,66 @@ Its AI-driven pipeline transforms fragmented information into coordinated action
 - 📱 Citizen incident tracking
 - 📴 Offline emergency-mode support
 
+---
+
+## 📸 Screenshots
+
+### 👤 Citizen Dashboard
+
+The citizen interface allows users to quickly report emergencies, access safety information, track submitted reports, and view their current emergency location.
+
+![Res-Q Citizen Dashboard](./screenshots/citizen_dashboard.png)
+
+---
+
+### ✅ Emergency Report Submitted
+
+After submitting an emergency report, Res-Q provides the citizen with a unique tracking ID and an AI-powered immediate assessment of the reported emergency.
+
+![Res-Q Report Submitted](./screenshots/report_submitted.png)
+
+---
+
+### 📍 Track Emergency Report
+
+Citizens can track their emergency report using the generated tracking ID and view the current dispatch status, assigned response unit, estimated arrival time, and response timeline.
+
+![Res-Q Track Emergency Report](./screenshots/track_report.png)
+
+---
+
+### 🚨 Emergency Command Center
+
+The admin dashboard provides a centralized command center for monitoring active incidents, critical emergencies, response teams, average response time, and the live emergency map.
+
+![Res-Q Admin Dashboard](./screenshots/admin_dashboard.png)
+
+---
+
+### 📋 Incident Management
+
+Authorities can view and manage emergency incidents with information such as incident type, severity, location, affected people, status, and dispatch information.
+
+![Res-Q Incident Management](./screenshots/all_incidents_details.png)
+
+---
+
+### 🗺️ Live Emergency Map
+
+The live map provides geographic visualization of emergency incidents, response teams, and hospitals, helping authorities monitor emergency operations spatially.
+
+![Res-Q Live Emergency Map](./screenshots/live_emergency_map.png)
+
+---
+
+### 📊 Emergency Analytics
+
+The analytics dashboard provides insights into incident types, severity distribution, response trends, and emergency activity.
+
+![Res-Q Analytics](./screenshots/analytics.png)
+
+---
+
 ### 💡 Example
 
 A citizen sees a major road accident and simply **speaks into the Res-Q app**:
